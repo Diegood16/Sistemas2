@@ -44,36 +44,26 @@ topicos = [topico_particulas, topico_clima]
 intervalo_publicacion = float(os.environ.get('INTERVALO_PUBLICACION', 5.0))
 
 # Configuracion de los 4 bots de Telegram solicitados
-# Si no hay tokens en .env o variables de entorno, el sistema opera automaticamente en Modo Simulado
+# Carga directa de las credenciales reales desde .env
 bots = {
     1: {
         'nombre': 'Bot 1 - Material Particulado PM1.0',
-        'token': os.environ.get('BOT_1_TOKEN', 'TOKEN_BOT_1'),
-        'chat_id': os.environ.get('BOT_1_CHAT_ID', 'CHAT_ID_1'),
+        'token': os.environ.get('BOT_1_TOKEN', ''),
+        'chat_id': os.environ.get('BOT_1_CHAT_ID', ''),
     },
     2: {
         'nombre': 'Bot 2 - Material Particulado PM2.5',
-        'token': os.environ.get('BOT_2_TOKEN', 'TOKEN_BOT_2'),
-        'chat_id': os.environ.get('BOT_2_CHAT_ID', 'CHAT_ID_2'),
+        'token': os.environ.get('BOT_2_TOKEN', ''),
+        'chat_id': os.environ.get('BOT_2_CHAT_ID', ''),
     },
     3: {
         'nombre': 'Bot 3 - Material Particulado PM10',
-        'token': os.environ.get('BOT_3_TOKEN', 'TOKEN_BOT_3'),
-        'chat_id': os.environ.get('BOT_3_CHAT_ID', 'CHAT_ID_3'),
+        'token': os.environ.get('BOT_3_TOKEN', ''),
+        'chat_id': os.environ.get('BOT_3_CHAT_ID', ''),
     },
     4: {
         'nombre': 'Bot 4 - Medio Ambiente (Temp y HR)',
-        'token': os.environ.get('BOT_4_TOKEN', 'TOKEN_BOT_4'),
-        'chat_id': os.environ.get('BOT_4_CHAT_ID', 'CHAT_ID_4'),
+        'token': os.environ.get('BOT_4_TOKEN', ''),
+        'chat_id': os.environ.get('BOT_4_CHAT_ID', ''),
     },
 }
-
-def es_modo_simulado(token):
-    # Si el token es de prueba o esta vacio, devolvemos True para operar en modo simulado
-    # y evitar que el programa se caiga si aun no se configuran los bots reales en Telegram
-    if not token or not isinstance(token, str):
-        return True
-    token_limpio = token.strip()
-    if token_limpio == '' or token_limpio.startswith('TOKEN_BOT_') or 'YOUR_TOKEN' in token_limpio.upper():
-        return True
-    return False

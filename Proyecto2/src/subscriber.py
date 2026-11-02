@@ -29,8 +29,7 @@ from config import (
     topico_particulas,
     topico_clima,
     carpeta_reportes,
-    bots,
-    es_modo_simulado
+    bots
 )
 
 class ClienteSuscriptor:
@@ -41,8 +40,9 @@ class ClienteSuscriptor:
         # Obtenemos los datos del bot asignado segun la config
         datos_bot = bots.get(cliente_id, {
             'nombre': f'Bot {cliente_id}',
-            'token': f'TOKEN_BOT_{cliente_id}',
-            'chat_id': f'CHAT_ID_{cliente_id}'
+            'token': '',
+            'chat_id': ''
+        })
         })
         self.nombre_bot = datos_bot['nombre']
         self.token_bot = datos_bot['token']
@@ -193,19 +193,18 @@ class ClienteSuscriptor:
         return ruta_imagen
 
     def enviar_telegram(self, ruta_imagen):
-        # Si estamos en modo simulado o no hay token configurado, solo guardamos local
-        if es_modo_simulado(self.token_bot):
-            print(f"[{self.nombre_bot}] [Modo Simulado] Reporte guardado localmente en: {ruta_imagen}")
+        if not self.token_bot or not self.chat_id:
+            print(f"[{self.nombre_bot}] Error: Token o Chat ID no configurados en el archivo .env.")
             return
 
-        # Si hay token real y telepot esta instalado, despachamos el mensaje a Telegram
+        # Verificamos que telepot este instalado
         if telepot is None:
-            print(f"[{self.nombre_bot}] Libreria 'telepot' no disponible. Imagen guardada en: {ruta_imagen}")
+            print(f"[{self.nombre_bot}] Error: Libreria 'telepot' no instalada. No se pudo enviar el reporte.")
             return
 
         # Verificamos que la imagen exista y que este completamente escrita (mas de 20 KB)
         if not ruta_imagen.exists() or ruta_imagen.stat().st_size < 20000:
-            print(f"[{self.nombre_bot}] Error: La imagen generada {ruta_imagen} esta vacia o corrupta ({ruta_imagen.stat().st_size if ruta_imagen.exists() else 0} bytes).")
+            print(f"[{self.nombre_bot}] Error: La imagen generada {ruta_imagen} esta vacia o corrupta.")
             return
 
         # Pequena pausa escalonada por cliente para no congestionar la conexion de Telegram

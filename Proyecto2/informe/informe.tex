@@ -191,7 +191,7 @@ El proyecto fue diseñado de manera modular para que cada archivo tenga una úni
 \midrule
 \texttt{.env} & \texttt{Proyecto2/} & Credenciales privadas (Tokens y Chat ID) ignoradas por Git. \\
 \texttt{.env.example} & \texttt{Proyecto2/} & Plantilla pública de configuración sin tokens reales. \\
-\texttt{config.py} & \texttt{Proyecto2/src/} & Lee el archivo \texttt{.env}, define puertos MQTT y fallback a modo simulado. \\
+\texttt{config.py} & \texttt{Proyecto2/src/} & Lee el archivo \texttt{.env}, define puertos MQTT y credenciales de los bots. \\
 \texttt{publicador.py} & \texttt{Proyecto2/src/} & Emite lecturas simuladas cada 5 segundos (código base de cátedra). \\
 \texttt{subscriber.py} & \texttt{Proyecto2/src/} & Clase base: gestión de red MQTT, ventana de 10 muestras, gráficos y Telegram. \\
 \texttt{cliente1.py} al \texttt{4.py} & \texttt{Proyecto2/src/} & Scripts ejecutables independientes para lanzar cada cliente por separado. \\
@@ -242,7 +242,7 @@ Uno de los riesgos más comunes en proyectos de desarrollo es subir accidentalme
         \item Los tokens se almacenan exclusivamente en el archivo local \texttt{.env}.
         \item El archivo \texttt{.gitignore} bloquea la inclusión de cualquier archivo de entorno (\texttt{*.env}) y las carpetas de caché compilada (\texttt{\_\_pycache\_\_}).
         \item Se provee \texttt{.env.example} como plantilla didáctica para que cualquier evaluador sepa qué variables existen sin comprometer las claves reales.
-        \item El código en \texttt{config.py} cuenta con detección de \textbf{Modo Simulado}: si no hay archivo \texttt{.env}, el sistema no se cae; simula el despacho, genera las imágenes localmente en \texttt{reportes/} y emite trazas claras por consola.
+        \item Validación estricta de credenciales: el sistema valida la presencia de los tokens y Chat ID en el archivo \texttt{.env} antes de despachar hacia la API de Telegram, emitiendo alertas claras por consola en caso de omisión.
     \end{enumerate}
 \end{itemize}
 
@@ -283,7 +283,7 @@ El desarrollo del Proyecto \#2 demostró con éxito la aplicabilidad del protoco
 \begin{itemize}
     \item \textbf{Escalabilidad:} La separación de roles a través del Broker Mosquitto permite incorporar decenas de nuevos sensores o clientes sin alterar el código existente.
     \item \textbf{Robustez Concurrente:} La migración a la API Orientada a Objetos de Matplotlib resolvió de raíz las condiciones de carrera entre hilos simultáneos.
-    \item \textbf{Ciberseguridad Práctica:} El aislamiento de credenciales en \texttt{.env} con soporte para Modo Simulado asegura que el proyecto pueda ser distribuido, auditado y ejecutado en cualquier computadora sin riesgos de seguridad ni dependencias forzosas.
+    \item \textbf{Ciberseguridad Práctica:} El aislamiento de credenciales en \texttt{.env} asegura que el proyecto pueda ser distribuido y auditado en cualquier computadora sin riesgos de seguridad ni filtración de tokens privados.
 \end{itemize}
 
 \end{document}
