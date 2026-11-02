@@ -1,0 +1,232 @@
+\documentclass[12pt,letterpaper]{article}
+
+% --- Paquetes de configuración regional y tipográfica ---
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{microtype}
+
+% --- Colores corporativos y de código ---
+\definecolor{codegreen}{rgb}{0.13,0.55,0.13}
+\definecolor{codegray}{rgb}{0.45,0.45,0.45}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.96,0.97,0.98}
+\definecolor{uctblue}{rgb}{0.08,0.22,0.45}
+
+% --- Configuración de listados de código ---
+\lstdefinestyle{estilopyp}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen}\itshape,
+    keywordstyle=\color{uctblue}\bfseries,
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=6pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=4,
+    frame=single,
+    rulecolor=\color{black!20}
+}
+\lstset{style=estilopyp}
+
+% --- Configuración de encabezados y pies de página ---
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{gray}Sistemas Inteligentes (INFO1157) - Proyecto \#2}
+\fancyhead[R]{\small\color{gray}Arquitectura MQTT y Telegram Bots}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.5pt}
+
+% --- Hipervínculos ---
+\hypersetup{
+    colorlinks=true,
+    linkcolor=uctblue,
+    citecolor=uctblue,
+    urlcolor=uctblue
+}
+
+\begin{document}
+
+% =========================================================================
+% PORTADA
+% =========================================================================
+\begin{titlepage}
+    \centering
+    \vspace*{1cm}
+    {\Large\textbf{UNIVERSIDAD CATÓLICA DE TEMUCO}}\\[0.3cm]
+    {\large FACULTAD DE INGENIERÍA}\\[0.2cm]
+    {\large DEPARTAMENTO DE INGENIERÍA CIVIL INFORMÁTICA}\\[1.5cm]
+    
+    \includegraphics[width=0.45\textwidth]{figuras/grafico_reporte.png}\\[1.2cm]
+    
+    {\LARGE\bfseries INFORME TÉCNICO PROYECTO \#2-2}\\[0.4cm]
+    {\Large\bfseries Arquitectura IoT Distribuida basada en Mensajería MQTT, Visualización Temporal con Matplotlib y Notificaciones Automatizadas a Bots de Telegram}\\[1.5cm]
+    
+    \textbf{Asignatura:} Sistemas Inteligentes (INFO1157)\\[0.2cm]
+    \textbf{Docente:} Dr. Alberto Caro S.\\[0.2cm]
+    \textbf{Unidad:} Unidad 2 -- Sistemas de Sensores e IoT\\[1.5cm]
+    
+    \begin{flushright}
+        \textbf{Estudiante:} Ingeniería Civil Informática\\
+        \textbf{Fecha:} 1 de Noviembre de 2026\\
+        \textbf{Temuco, Chile}
+    \end{flushright}
+    \vfill
+\end{titlepage}
+
+\newpage
+\tableofcontents
+\newpage
+
+% =========================================================================
+% 1. INTRODUCCIÓN Y OBJETIVOS
+% =========================================================================
+\section{Introducción y Objetivos}
+
+En la era del Internet de las Cosas (IoT) y las Ciudades Inteligentes (\textit{Smart Cities}), el monitoreo continuo de variables medioambientales y contaminantes atmosféricos es indispensable para la salud pública y la toma de decisiones automatizada. El protocolo MQTT (\textit{Message Queuing Telemetry Transport}) se ha consolidado como el estándar de comunicación dominante para redes sensoriales debido a su diseño liviano bajo el patrón de publicación/suscripción (\textit{Pub/Sub}), bajo consumo de ancho de banda y desacoplamiento temporal y espacial entre emisores y receptores.
+
+El presente proyecto implementa un sistema distribuido de telemetría ambiental compuesto por un nodo emisor de datos sensoriales, un intermediario de mensajería (\textit{Broker}) y cuatro clientes suscriptores independientes. Cada suscriptor recopila una ventana histórica de 10 muestras continuas de material particulado y condiciones atmosféricas, procesa los datos generando un reporte gráfico multieje en \texttt{Matplotlib} y lo despacha de forma automatizada hacia cuatro \textit{bots} de Telegram mediante la biblioteca \texttt{telepot}.
+
+\subsection{Objetivos Específicos}
+\begin{enumerate}
+    \item Desplegar una infraestructura de mensajería MQTT sobre \texttt{127.0.0.1:1883} compatible con clientes estándar.
+    \item Implementar un nodo publicador periódico que transmita lecturas simuladas de partículas (\texttt{DATA/MP}) y clima (\texttt{DATA/MA}) a intervalos de 5 segundos.
+    \item Diseñar cuatro clientes suscriptores que mantengan buffers temporales independientes de 10 muestras para cada magnitud física.
+    \item Replicar con rigurosa precisión la figura de cinco subplots apilados establecida en la pauta de cátedra.
+    \item Integrar la API de Telegram con soporte para modo simulación (almacenamiento local seguro) y modo real en línea.
+\end{enumerate}
+
+% =========================================================================
+% 2. ARQUITECTURA DEL SISTEMA
+% =========================================================================
+\section{Arquitectura del Sistema Distribuido}
+
+La solución adopta un modelo desacoplado compuesto por tres capas principales:
+
+\begin{enumerate}
+    \item \textbf{Capa de Publicación (Nodo Sensor):} El script \texttt{publicador.py} simula la captura periódica de datos ambientales.
+    \item \textbf{Capa de Intermediación (Broker MQTT):} El broker centralizado en \texttt{127.0.0.1:1883} recibe los paquetes y los enruta eficientemente hacia los nodos interesados sin conocer la identidad ni el número de suscriptores.
+    \item \textbf{Capa de Suscripción y Despacho (Clientes 1 a 4):} Cuatro agentes suscriptores independientes reciben los flujos de información, construyen la ventana móvil y generan el reporte gráfico para sus respectivos destinatarios en Telegram.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figuras/grafico_reporte.png}
+    \caption{Reporte gráfico generado automáticamente tras acumular 10 muestras.}
+    \label{fig:reporte}
+\end{figure}
+
+% =========================================================================
+% 3. PROTOCOLO DE MENSAJERÍA Y TÓPICOS
+% =========================================================================
+\section{Protocolo de Mensajería y Tópicos}
+
+El sistema utiliza dos tópicos principales con cargas útiles codificadas en formato CSV de texto plano:
+
+\subsection{Tópico \texttt{DATA/MP} (Material Particulado)}
+Transmite la concentración de partículas finas suspendidas en microgramos por metro cúbico ($\mu\text{g/m}^3$):
+\begin{equation}
+\text{Payload} = \texttt{"<MP01>,<MP25>,<MP10>\textbackslash n"}
+\end{equation}
+\begin{itemize}
+    \item \textbf{MP01 (PM 1.0):} Partículas con diámetro $\leq 1.0\,\mu\text{m}$ (rango: 4 a 10 $\mu\text{g/m}^3$).
+    \item \textbf{MP25 (PM 2.5):} Fracción fina respirable $\leq 2.5\,\mu\text{m}$ (rango: 10 a 50 $\mu\text{g/m}^3$).
+    \item \textbf{MP10 (PM 10):} Partículas torácicas $\leq 10\,\mu\text{m}$ (rango: 10 a 50 $\mu\text{g/m}^3$).
+\end{itemize}
+
+\subsection{Tópico \texttt{DATA/MA} (Medio Ambiente)}
+Transmite las variables termohigrométricas del aire:
+\begin{equation}
+\text{Payload} = \texttt{"<Temperatura>,<Humedad>\textbackslash n"}
+\end{equation}
+\begin{itemize}
+    \item \textbf{Temperatura:} Temperatura ambiente en grados Celsius (rango: 10 a 22 $^\circ\text{C}$).
+    \item \textbf{Humedad Relativa (HR):} Porcentaje de saturación de vapor de agua (rango: 60 a 85 \%).
+\end{itemize}
+
+% =========================================================================
+% 4. GENERACIÓN GRÁFICA MULTIEJE EN MATPLOTLIB
+% =========================================================================
+\section{Generación Gráfica Multieje en Matplotlib}
+
+Siguiendo estrictamente la pauta del docente Dr. Alberto Caro, se configuró una figura con cinco subplots verticales compartiendo el eje horizontal (\texttt{sharex=True}):
+
+\begin{table}[H]
+\centering
+\caption{Especificación técnica de cada subplot según la pauta oficial.}
+\label{tab:subplots}
+\begin{tabular}{cclccp{4.5cm}}
+\toprule
+\textbf{Subplot} & \textbf{Variable} & \textbf{Color} & \textbf{Eje Y} & \textbf{Rango Y} & \textbf{Leyenda y Grilla} \\
+\midrule
+1 & MP01 & Azul & \texttt{"ug/m3"} & $[0, 50]$ & Leyenda \texttt{MP01}, grilla punteada. \\
+2 & MP25 & Verde & \texttt{"ug/m3"} & $[0, 50]$ & Leyenda \texttt{MP25}, grilla punteada. \\
+3 & MP10 & Rojo & \texttt{"ug/m3"} & $[0, 50]$ & Leyenda \texttt{MP10}, grilla punteada. \\
+4 & Tempe & Azul & \texttt{"Tempe"} & $[0, 50]$ & Leyenda \texttt{Tempe}, grilla punteada. \\
+5 & HR & Rojo & \texttt{"HR(\%)"} & $[50, 90]$ & Leyenda \texttt{HR(\%)}, grilla punteada. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El eje $X$ inferior presenta marcas en $[2, 4, 6, 8, 10, 12]$ bajo la etiqueta descriptiva \texttt{"10 Samples Datas..."}. Para optimizar el rendimiento y evitar fugas de memoria en servidores continuos, la figura se compila con el motor no interactivo \texttt{Agg} y se libera inmediatamente mediante \texttt{plt.close()}.
+
+% =========================================================================
+% 5. INTEGRACIÓN CON TELEGRAM Y MODO SEGURO
+% =========================================================================
+\section{Integración con Telegram y Modo Simulado}
+
+La distribución de reportes hacia los cuatro clientes de Telegram se implementó a través de la biblioteca \texttt{telepot}. Con el propósito de brindar autonomía operativa completa, el módulo \texttt{config.py} incorpora un mecanismo de detección de modo simulado:
+
+\begin{itemize}
+    \item \textbf{Modo Simulado (Offline):} Si los tokens configurados contienen valores de prueba (\texttt{'TOKEN\_BOT\_1'}, etc.), el cliente guarda la imagen en la carpeta \texttt{reportes/} y emite una traza clara en consola, permitiendo validar el ciclo completo sin requerir conectividad externa.
+    \item \textbf{Modo Real (Online):} Al ingresar tokens legítimos provistos por \texttt{@BotFather} y el identificador de chat (\textit{Chat ID}), el suscriptor ejecuta \texttt{bot.sendPhoto(chat\_id, foto)} enviando instantáneamente el gráfico al teléfono del usuario.
+\end{itemize}
+
+% =========================================================================
+% 6. MANUAL DE OPERACIÓN
+% =========================================================================
+\section{Manual de Operación}
+
+Para ejecutar el sistema completo en Windows CMD, se provee el lanzador por lotes interactivo \texttt{ejecutar.bat}:
+
+\begin{lstlisting}[language=bash]
+cd "d:\Universidad\Sistemas Inteligentes\Sistemas U2\Proyectos\Proyecto2"
+ejecutar.bat
+\end{lstlisting}
+
+El menú interactivo permite:
+\begin{itemize}
+    \item \textbf{Opción 1:} Iniciar el Broker MQTT local en Python (\texttt{127.0.0.1:1883}).
+    \item \textbf{Opción 2:} Iniciar el publicador de datos periódico (\texttt{publicador.py}).
+    \item \textbf{Opción 3:} Iniciar los cuatro clientes suscriptores en ventanas separadas.
+    \item \textbf{Opción 4:} Iniciar el simulador completo todo-en-uno (\texttt{simulador\_completo.py}).
+\end{itemize}
+
+% =========================================================================
+% 7. CONCLUSIONES
+% =========================================================================
+\section{Conclusiones}
+
+El desarrollo del presente proyecto permitió implementar de extremo a extremo una solución IoT escalable y desacoplada mediante el protocolo MQTT. La arquitectura modular adoptada separa nítidamente las responsabilidades de captura, intermediación, procesamiento analítico y notificación externa. 
+
+La integración de la ventana histórica de diez muestras con la generación gráfica automatizada en \texttt{Matplotlib} y el despacho a bots de Telegram valida la viabilidad de utilizar herramientas abiertas y lenguajes de alto nivel como Python para construir sistemas de telemetría y supervisión ambiental en tiempo real.
+
+\end{document}

@@ -1,0 +1,298 @@
+\documentclass[12pt,letterpaper]{article}
+
+% --- Paquetes de configuración regional y tipográfica ---
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{microtype}
+
+% --- Colores corporativos y de código ---
+\definecolor{codegreen}{rgb}{0.13,0.55,0.13}
+\definecolor{codegray}{rgb}{0.45,0.45,0.45}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.96,0.97,0.98}
+\definecolor{uctblue}{rgb}{0.08,0.22,0.45}
+
+% --- Configuración de listados de código ---
+\lstdefinestyle{estilopyp}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen}\itshape,
+    keywordstyle=\color{uctblue}\bfseries,
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=6pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=4,
+    frame=single,
+    rulecolor=\color{black!20}
+}
+\lstset{style=estilopyp}
+
+% --- Configuración de encabezados y pies de página ---
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{gray}Sistemas Inteligentes (INFO1157) - Proyecto \#1}
+\fancyhead[R]{\small\color{gray}Simulador Inercial 3D}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.5pt}
+
+% --- Hipervínculos ---
+\hypersetup{
+    colorlinks=true,
+    linkcolor=uctblue,
+    citecolor=uctblue,
+    urlcolor=uctblue
+}
+
+\begin{document}
+
+% =========================================================================
+% PORTADA
+% =========================================================================
+\begin{titlepage}
+    \centering
+    \vspace*{1cm}
+    {\Large\textbf{UNIVERSIDAD CATÓLICA DE TEMUCO}}\\[0.3cm]
+    {\large FACULTAD DE INGENIERÍA}\\[0.2cm]
+    {\large DEPARTAMENTO DE INGENIERÍA CIVIL INFORMÁTICA}\\[1.5cm]
+    
+    \includegraphics[width=0.3\textwidth]{figuras/simulacion_3d.jpg}\\[1.5cm]
+    
+    {\LARGE\bfseries INFORME TÉCNICO PROYECTO \#2-1}\\[0.4cm]
+    {\Large\bfseries Decodificación de Tramas Binarias y Simulación Tridimensional de Sensor Inercial AHRS WitMotion BWT901CL en Python}\\[1.5cm]
+    
+    \textbf{Asignatura:} Sistemas Inteligentes (INFO1157)\\[0.2cm]
+    \textbf{Docente:} Dr. Alberto Caro S.\\[0.2cm]
+    \textbf{Unidad:} Unidad 2 -- Sistemas de Sensores e IoT\\[1.5cm]
+    
+    \begin{flushright}
+        \textbf{Estudiante:} Ingeniería Civil Informática\\
+        \textbf{Fecha:} 1 de Noviembre de 2026\\
+        \textbf{Temuco, Chile}
+    \end{flushright}
+    \vfill
+\end{titlepage}
+
+\newpage
+\tableofcontents
+\newpage
+
+% =========================================================================
+% 1. INTRODUCCIÓN Y OBJETIVOS
+% =========================================================================
+\section{Introducción y Objetivos}
+
+En el ámbito de la robótica, vehículos autónomos y dispositivos vestibles (\textit{wearables}), la determinación precisa de la orientación espacial en tiempo real constituye uno de los pilares esenciales para el control y la navegación. Los sensores inerciales o Unidades de Medición Inercial (IMU, por sus siglas en inglés), integrados con acelerómetros triaxiales, giróscopos y magnetómetros, procesan aceleraciones lineales y velocidades angulares que, mediante algoritmos de fusión sensorial como el Filtro de Kalman Extendido (EKF), permiten derivar la orientación tridimensional del dispositivo en términos de los ángulos de Euler: balanceo (\textit{Roll}), cabeceo (\textit{Pitch}) y guiñada (\textit{Yaw}).
+
+El presente proyecto, enmarcado en la Unidad 2 de la cátedra de \textbf{Sistemas Inteligentes (INFO1157)}, tiene por finalidad desarrollar una solución integral de ingeniería de software para decodificar, procesar y simular visualmente la cinemática de un sensor inercial inteligente \textbf{WitMotion BWT901CL} a partir de un flujo de datos binario pregrabado (\texttt{inercial.bin}).
+
+\subsection{Objetivos Específicos}
+\begin{enumerate}
+    \item Implementar la estructura binaria de bajo nivel con el módulo \texttt{ctypes} de Python para empaquetar y deserializar los bloques de 11 bytes del protocolo WitMotion.
+    \item Validar matemáticamente la integridad de cada paquete de telemetría mediante el cálculo de la suma de comprobación (\textit{Checksum}) módulo 256.
+    \item Convertir las variables de medición discretas de 16 bits en complemento a dos hacia magnitudes angulares físicas continuas en grados sexagesimales ($\pm 180^\circ$).
+    \item Construir un entorno de visualización tridimensional en \texttt{VPython} que replique con fidelidad la geometría y rotación del sensor observadas en la demostración oficial (\texttt{MyDemo.mp4}).
+    \item Dotar a la aplicación de un sistema de control interactivo bidireccional (avance, retroceso paso a paso, pausa, velocidad variable y reinicio) tanto por teclado como mediante botones gráficos interactivos en pantalla.
+\end{enumerate}
+
+% =========================================================================
+% 2. FUNDAMENTOS TEÓRICOS DEL SENSOR WITMOTION BWT901CL
+% =========================================================================
+\section{Fundamentos Teóricos del Sensor WitMotion BWT901CL}
+
+El sensor \textbf{WitMotion BWT901CL} es un módulo inercial inteligente de alta precisión (IMU/AHRS) de 9 grados de libertad. El núcleo del dispositivo combina un microprocesador Cortex-M0 de 32 bits junto con sensores Micro-Electro-Mechanical Systems (MEMS) de alta sensibilidad.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\textwidth]{figuras/simulacion_3d.jpg}
+    \caption{Captura del entorno de simulación tridimensional representativo del sensor en movimiento.}
+    \label{fig:simulacion}
+\end{figure}
+
+\subsection{Cinemática de Rotación y Ángulos de Euler}
+El dispositivo define su orientación mediante la secuencia de rotaciones intrínsecas de Tait-Bryan bajo el orden formal $Z-Y-X$:
+\begin{enumerate}
+    \item Rotación de guiñada (\textit{Yaw}, $\psi$) alrededor del eje $Z$.
+    \item Rotación de cabeceo (\textit{Pitch}, $\theta$) alrededor del eje $Y$.
+    \item Rotación de balanceo (\textit{Roll}, $\phi$) alrededor del eje $X$.
+\end{enumerate}
+
+Para evitar indeterminaciones matemáticas de singularidad (\textit{Gimbal Lock}), el algoritmo de fusión restringe el ángulo de cabeceo al intervalo $-90^\circ \leq \theta \leq +90^\circ$, mientras que los ejes de balanceo y guiñada operan en el rango completo de $-180^\circ \leq \phi, \psi \leq +180^\circ$.
+
+% =========================================================================
+% 3. ESTRUCTURA Y DECODIFICACIÓN DE LA TRAMA BINARIA
+% =========================================================================
+\section{Estructura y Decodificación de la Trama Binaria}
+
+El sensor transmite paquetes binarios periódicos a través de UART o Bluetooth 2.0 (115200 bps, 8N1). Cada trama consta rigurosamente de 11 bytes contiguos sin alineación de relleno, estructurados según se detalla en la Tabla \ref{tab:trama}.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Estructura byte a byte de la trama de actitud angular (0x53).}
+\label{tab:trama}
+\begin{tabular}{cclp{7.5cm}}
+\toprule
+\textbf{Índice} & \textbf{Campo} & \textbf{Nombre} & \textbf{Descripción Técnica} \\
+\midrule
+0 & \texttt{B0} & \texttt{Header} & Byte fijo de sincronización (\texttt{0x55} = 85 decimal). \\
+1 & \texttt{B1} & \texttt{Type} & Tipo de paquete (\texttt{0x53} = 83 decimal: Ángulos de Euler). \\
+2 & \texttt{B2} & \texttt{Roll\_L} & Byte menos significativo (LSB) del ángulo Roll. \\
+3 & \texttt{B3} & \texttt{Roll\_H} & Byte más significativo (MSB) del ángulo Roll. \\
+4 & \texttt{B4} & \texttt{Pitch\_L} & Byte menos significativo (LSB) del ángulo Pitch. \\
+5 & \texttt{B5} & \texttt{Pitch\_H} & Byte más significativo (MSB) del ángulo Pitch. \\
+6 & \texttt{B6} & \texttt{Yaw\_L} & Byte menos significativo (LSB) del ángulo Yaw. \\
+7 & \texttt{B7} & \texttt{Yaw\_H} & Byte más significativo (MSB) del ángulo Yaw. \\
+8 & \texttt{B8} & \texttt{Temp\_L} & Byte menos significativo (LSB) de la temperatura interna. \\
+9 & \texttt{B9} & \texttt{Temp\_H} & Byte más significativo (MSB) de la temperatura interna. \\
+10 & \texttt{BA} & \texttt{Checksum} & Suma de verificación acumulada de los primeros 10 bytes. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Verificación Matemática del Checksum}
+Para asegurar que los datos no hayan sufrido corrupción en el canal de transmisión, el byte de control \texttt{BA} se compara contra la suma aritmética de los primeros 10 bytes truncada a 8 bits:
+\begin{equation}
+\text{Checksum}_{\text{calc}} = \left( \sum_{i=0}^{9} B_i \right) \pmod{256}
+\end{equation}
+
+Si $\text{Checksum}_{\text{calc}} == B_{10}$, el paquete se declara válido y se procede a su interpretación.
+
+\subsection{Conversión de Valores Crudos a Magnitudes Físicas}
+Los valores de ángulo vienen representados como enteros de 16 bits en complemento a dos (\textit{signed short}) con ordenamiento de bytes \textit{Little-Endian}:
+\begin{equation}
+\text{Raw} = (\text{Byte}_H \ll 8) \mid \text{Byte}_L
+\end{equation}
+
+El factor de escala del fabricante establece que el rango numérico de $[-32768, +32767]$ equivale a un intervalo de orientación de $\pm 180^\circ$:
+\begin{align}
+\text{Roll} [^\circ] &= \frac{\text{Raw}_{\text{Roll}}}{32768.0} \times 180.0 \\
+\text{Pitch} [^\circ] &= \frac{\text{Raw}_{\text{Pitch}}}{32768.0} \times 180.0 \\
+\text{Yaw} [^\circ] &= \frac{\text{Raw}_{\text{Yaw}}}{32768.0} \times 180.0
+\end{align}
+
+Asimismo, la temperatura interna del encapsulado se obtiene mediante la ecuación calibrada:
+\begin{equation}
+T [^\circ\text{C}] = \frac{\text{Raw}_{\text{Temp}}}{340.0} + 36.53
+\end{equation}
+
+\subsection{Implementación con ctypes}
+Respetando estrictamente el requerimiento metodológico de la cátedra del Dr. Alberto Caro, se definió la clase de estructura binaria:
+\begin{lstlisting}[language=Python]
+import ctypes as ct
+
+class eTrama(ct.Structure):
+    _fields_ = [
+        ('B0', ct.c_ubyte), ('B1', ct.c_ubyte), ('B2', ct.c_ubyte),
+        ('B3', ct.c_ubyte), ('B4', ct.c_ubyte), ('B5', ct.c_ubyte),
+        ('B6', ct.c_ubyte), ('B7', ct.c_ubyte), ('B8', ct.c_ubyte),
+        ('B9', ct.c_ubyte), ('BA', ct.c_ubyte)
+    ]
+\end{lstlisting}
+
+% =========================================================================
+% 4. ARQUITECTURA DEL SOFTWARE Y SIMULACIÓN 3D
+% =========================================================================
+\section{Arquitectura del Software y Simulación Tridimensional}
+
+El proyecto se estructuró de manera modular en tres componentes principales, promoviendo alta cohesión y bajo acoplamiento:
+\begin{itemize}
+    \item \textbf{\texttt{decoder.py}:} Encargado de la deserialización binaria, validación de integridad y conversión física de unidades.
+    \item \textbf{\texttt{visualizer.py}:} Encargado del renderizado WebGL/\texttt{VPython}, creación de la geometría del sensor, plano base azul, HUD de telemetría y botonera interactiva.
+    \item \textbf{\texttt{main.py}:} Coordinador principal, ciclo de muestreo a 10 Hz, controlador de eventos de teclado, telemetría en consola CMD y plantilla de conexión serial Bluetooth.
+\end{itemize}
+
+\subsection{Modelado Geométrico y Rotación Absoluta sin Deriva}
+Siguiendo las dimensiones de cátedra, el sensor se modela en \texttt{Get\_Frame()} mediante tres cuerpos geométricos acoplados rígidamente en un objeto \texttt{compound}:
+\begin{enumerate}
+    \item \textbf{Cuerpo principal:} Caja roja con dimensiones $(100, 60, 160)$.
+    \item \textbf{Eje transversal (X):} Barra azul con dimensiones $(200, 2, 2)$.
+    \item \textbf{Eje vertical (Y):} Barra verde con dimensiones $(2, 200, 2)$.
+\end{enumerate}
+
+Para garantizar que el avance y retroceso continuo o manual de tramas no acumule errores de redondeo numérico (\textit{drift}), se implementó la función \texttt{orientar\_absoluto()}: cada actualización restablece los vectores base (\texttt{initial\_axis} e \texttt{initial\_up}) y rota sobre los ejes de Euler absolutos en secuencia $Z-Y-X$.
+
+% =========================================================================
+% 5. ANÁLISIS DE RESULTADOS EXPERIMENTALES
+% =========================================================================
+\section{Análisis de Resultados Experimentales}
+
+Al procesar el archivo provisto \texttt{inercial.bin} (4.466 bytes), la auditoría arrojó los siguientes resultados cuantitativos:
+\begin{itemize}
+    \item \textbf{Total de paquetes leídos:} 406 tramas.
+    \item \textbf{Integridad de Checksums:} 406 de 406 válidas ($100.0\%$).
+    \item \textbf{Duración total de la muestra:} 40.6 segundos a una tasa de 10 Hz, coincidiendo de forma idéntica con el video de referencia \texttt{MyDemo.mp4}.
+\end{itemize}
+
+La Figura \ref{fig:curvas} muestra la evolución temporal de los tres ángulos decodificados a lo largo de las 406 tramas de ensayo.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{figuras/curvas_angulos.png}
+    \caption{Curvas de telemetría de orientación (Roll, Pitch, Yaw) a lo largo del tiempo.}
+    \label{fig:curvas}
+\end{figure}
+
+% =========================================================================
+% 6. MANUAL DE USUARIO Y OPERACIÓN
+% =========================================================================
+\section{Manual de Operación y Controles}
+
+\subsection{Ejecución en Windows CMD}
+Para iniciar la simulación, ejecute en una consola CMD:
+\begin{lstlisting}[language=bash]
+cd "d:\Universidad\Sistemas Inteligentes\Sistemas U2\Proyectos\Proyecto1"
+python main.py
+\end{lstlisting}
+O ejecute directamente con doble clic el archivo por lotes \texttt{ejecutar.bat}.
+
+\subsection{Tabla de Controles Interactivos}
+La aplicación ofrece control dual simultáneo (teclado y botonera en pantalla), resumido en la Tabla \ref{tab:controles}.
+
+\begin{table}[H]
+\centering
+\caption{Comandos interactivos de control de la simulación.}
+\label{tab:controles}
+\begin{tabular}{llp{7cm}}
+\toprule
+\textbf{Acción} & \textbf{Teclado} & \textbf{Botón en Interfaz 3D} \\
+\midrule
+Pausar / Reanudar & Barra Espaciadora & \texttt{[⏯️ Pausa / Play]} \\
+Paso Atrás (1 trama) & Flecha Izquierda / \texttt{B} & \texttt{[⏪ Paso Atrás]} \\
+Paso Adelante (1 trama) & Flecha Derecha / \texttt{T} & \texttt{[⏩ Paso Adelante]} \\
+Velocidad Normal (1.0x) & Tecla \texttt{1} & \texttt{[⚡ 1.0x]} \\
+Velocidad Rápida (2.0x) & Tecla \texttt{2} & \texttt{[⚡ 2.0x]} \\
+Reiniciar Simulación & Tecla \texttt{R} & \texttt{[🔄 Reiniciar]} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% =========================================================================
+% 7. CONCLUSIONES
+% =========================================================================
+\section{Conclusiones}
+
+El desarrollo del presente proyecto permitió consolidar los conocimientos prácticos de adquisición y procesamiento de datos sensoriales de bajo nivel en el contexto de sistemas inteligentes. La utilización de estructuras \texttt{ctypes} demostró ser un mecanismo altamente eficiente para el desempaquetado de memoria en arquitecturas Little-Endian sin incurrir en sobrecostes de rendimiento. 
+
+Asimismo, la integración entre la decodificación matemática de tramas y el motor de visualización tridimensional en \texttt{VPython} permitió recrear con máxima fidelidad la dinámica espacial del sensor inercial WitMotion BWT901CL, alcanzando una tasa de integridad de datos del $100\%$ y dotando al sistema de una interfaz de control y navegación temporal fluida e interactiva.
+
+\end{document}
