@@ -1,7 +1,6 @@
 # Dependencias del Proyecto 1 - Simulador Sensor Inercial 3D
 # Asignatura: Sistemas Inteligentes (INFO1157)
 vpython>=7.6.5
-setuptools<70
 
 # Opcional si se conecta el sensor fisico por Bluetooth en laboratorio:
 # pyserial>=3.5

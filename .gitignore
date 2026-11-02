@@ -1,0 +1,26 @@
+# Credenciales privadas y variables de entorno
+.env
+*.env
+.env.*
+!.env.example
+
+# Compilados de Python y cache de ejecucion
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Entornos virtuales locales
+venv/
+.venv/
+env/
+
+# Carpetas de configuracion de IDEs
+.vscode/
+.idea/
+*.swp
+*.log
+
+# Reportes graficos locales generados durante pruebas (se mantiene la carpeta)
+Proyecto2/reportes/*.png
+!Proyecto2/reportes/.gitkeep

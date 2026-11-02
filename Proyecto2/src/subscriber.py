@@ -2,10 +2,14 @@
 # Cliente suscriptor que acumula 10 muestras, genera el reporte y lo manda a Telegram
 
 import sys
+import time
+import threading
 from pathlib import Path
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+
+# Candado para que los hilos no se pisen al generar graficos con matplotlib
+bloqueo_grafico = threading.Lock()
 
 # Agregamos la ruta base para importar la configuracion
 directorio_actual = Path(__file__).resolve().parent
@@ -55,8 +59,7 @@ class ClienteSuscriptor:
         self.contador_reportes = 0
 
         # Configuramos el cliente MQTT con soporte tanto para paho v2 como v1
-        import os
-        nombre_cliente_mqtt = f"cliente_suscriptor_{self.cliente_id}_{os.getpid()}"
+        nombre_cliente_mqtt = f"cliente_suscriptor_{self.cliente_id}"
         try:
             self.cliente = mqtt.Client(
                 callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
@@ -132,7 +135,7 @@ class ClienteSuscriptor:
             )
             self.enviar_telegram(ruta_imagen)
 
-            # Retenemos las muestras restantes para la siguiente tanda sin perder datos
+            # Limpiamos los primeros 10 elementos para no acumular indefinidamente pero conservar remanentes
             self.historial_mp01 = self.historial_mp01[10:]
             self.historial_mp25 = self.historial_mp25[10:]
             self.historial_mp10 = self.historial_mp10[10:]
@@ -145,42 +148,46 @@ class ClienteSuscriptor:
         nombre_archivo = f"cliente_{self.cliente_id}_reporte_{self.contador_reportes}.png"
         ruta_imagen = carpeta_reportes / nombre_archivo
 
-        # Replicamos la Figura 3 del profesor: 5 subplots apilados compartiendo eje X
-        figura, ejes = plt.subplots(5, 1, sharex=True, figsize=(7.5, 7))
-        figura.suptitle("Medicion MP1, MP2.5, MP10um - Tempe, HR", fontsize=12, y=0.98)
+        # Candado adicional de concurrencia
+        with bloqueo_grafico:
+            # Usamos la API orientada a objetos de Matplotlib (Figure + FigureCanvasAgg)
+            # para garantizar 100% thread-safety sin usar el singleton global de pyplot
+            figura = Figure(figsize=(7.5, 7))
+            canvas = FigureCanvasAgg(figura)
+            ejes = figura.subplots(5, 1, sharex=True)
+            figura.suptitle("Medicion MP1, MP2.5, MP10um - Tempe, HR", fontsize=12, y=0.98)
 
-        # Los puntos corresponden a las 10 muestras (de 1 a 10)
-        eje_x = list(range(1, 11))
+            # Los puntos corresponden a las 10 muestras (de 1 a 10)
+            eje_x = list(range(1, 11))
 
-        # Configuracion de cada subplot segun la especificacion exacta
-        config_subplots = [
-            (ejes[0], muestras_mp01, 'blue', 'ug/m3', 'MP01', (0, 50), [0, 10, 20, 30, 40, 50]),
-            (ejes[1], muestras_mp25, 'green', 'ug/m3', 'MP25', (0, 50), [0, 10, 20, 30, 40, 50]),
-            (ejes[2], muestras_mp10, 'red', 'ug/m3', 'MP10', (0, 50), [0, 10, 20, 30, 40, 50]),
-            (ejes[3], muestras_temp, 'blue', 'Tempe', 'Tempe', (0, 50), [0, 10, 20, 30, 40, 50]),
-            (ejes[4], muestras_hum, 'red', 'HR(%)', 'HR(%)', (50, 90), [50, 60, 70, 80, 90]),
-        ]
+            # Configuracion de cada subplot segun la especificacion exacta
+            config_subplots = [
+                (ejes[0], muestras_mp01, 'blue', 'ug/m3', 'MP01', (0, 50), [0, 10, 20, 30, 40, 50]),
+                (ejes[1], muestras_mp25, 'green', 'ug/m3', 'MP25', (0, 50), [0, 10, 20, 30, 40, 50]),
+                (ejes[2], muestras_mp10, 'red', 'ug/m3', 'MP10', (0, 50), [0, 10, 20, 30, 40, 50]),
+                (ejes[3], muestras_temp, 'blue', 'Tempe', 'Tempe', (0, 50), [0, 10, 20, 30, 40, 50]),
+                (ejes[4], muestras_hum, 'red', 'HR(%)', 'HR(%)', (50, 90), [50, 60, 70, 80, 90]),
+            ]
 
-        for ax, datos, color_linea, etiqueta_y, etiqueta_leyenda, limite_y, marcas_y in config_subplots:
-            ax.plot(eje_x, datos, color=color_linea, label=etiqueta_leyenda, linewidth=1.2)
-            ax.set_ylabel(etiqueta_y, fontsize=9)
-            ax.set_ylim(limite_y)
-            ax.set_yticks(marcas_y)
-            ax.grid(True, linestyle=':', alpha=0.8)
-            ax.legend(loc='upper right', framealpha=1.0, edgecolor='black', fontsize=9)
+            for ax, datos, color_linea, etiqueta_y, etiqueta_leyenda, limite_y, marcas_y in config_subplots:
+                ax.plot(eje_x, datos, color=color_linea, label=etiqueta_leyenda, linewidth=1.2)
+                ax.set_ylabel(etiqueta_y, fontsize=9)
+                ax.set_ylim(limite_y)
+                ax.set_yticks(marcas_y)
+                ax.grid(True, linestyle=':', alpha=0.8)
+                ax.legend(loc='upper right', framealpha=1.0, edgecolor='black', fontsize=9)
 
-        # Configuracion del eje X inferior
-        ejes[-1].set_xlabel("10 Samples Datas...", fontsize=10)
-        ejes[-1].set_xlim(1, 13)
-        ejes[-1].set_xticks([2, 4, 6, 8, 10, 12])
+            # Configuracion del eje X inferior
+            ejes[-1].set_xlabel("10 Samples Datas...", fontsize=10)
+            ejes[-1].set_xlim(1, 13)
+            ejes[-1].set_xticks([2, 4, 6, 8, 10, 12])
 
-        # Ajustamos espaciado para que no se sobrepongan titulos ni valores
-        plt.tight_layout()
-        plt.subplots_adjust(top=0.93)
+            # Ajustamos espaciado para que no se sobrepongan titulos ni valores
+            figura.tight_layout()
+            figura.subplots_adjust(top=0.93)
 
-        # Guardamos la imagen y cerramos la figura para no acumular memoria
-        plt.savefig(ruta_imagen, dpi=150)
-        plt.close(figura)
+            # Guardamos la imagen directamente desde la figura y su canvas
+            figura.savefig(ruta_imagen, dpi=150)
 
         return ruta_imagen
 
@@ -194,6 +201,14 @@ class ClienteSuscriptor:
         if telepot is None:
             print(f"[{self.nombre_bot}] Libreria 'telepot' no disponible. Imagen guardada en: {ruta_imagen}")
             return
+
+        # Verificamos que la imagen exista y que este completamente escrita (mas de 20 KB)
+        if not ruta_imagen.exists() or ruta_imagen.stat().st_size < 20000:
+            print(f"[{self.nombre_bot}] Error: La imagen generada {ruta_imagen} esta vacia o corrupta ({ruta_imagen.stat().st_size if ruta_imagen.exists() else 0} bytes).")
+            return
+
+        # Pequena pausa escalonada por cliente para no congestionar la conexion de Telegram
+        time.sleep(0.3 * self.cliente_id)
 
         try:
             bot = telepot.Bot(self.token_bot)

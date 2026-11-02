@@ -1,6 +1,6 @@
 @echo off
 rem Proyecto 2 - Publicador y suscriptores MQTT con visualizacion y Telegram
-rem Menu interactivo para ejecutar broker, publicador, clientes, simulador o pruebas
+rem Menu interactivo para ejecutar broker, publicador, clientes o simulador completo
 
 chcp 65001 > nul
 cd /d "%~dp0"
@@ -13,22 +13,20 @@ echo       PROYECTO 2 - SISTEMAS INTELIGENTES (INFO1157)
 echo         Arquitectura de Publicacion y Suscripcion
 echo --------------------------------------------------------
 echo.
-echo   [1] Estado y Verificacion del Broker MQTT (Mosquitto)
-echo   [2] Iniciar Publicador de Datos (Dr. Alberto Caro)
-echo   [3] Iniciar Clientes Suscriptores 1 al 4 (Ventanas separadas)
+echo   [1] Iniciar Broker MQTT Local (127.0.0.1:1883)
+echo   [2] Iniciar Publicador de Datos (Caro)
+echo   [3] Iniciar Clientes Suscriptores 1 al 4
 echo   [4] Iniciar Simulador Completo (Todo en uno)
-echo   [5] Diagnostico y Prueba de Bots de Telegram
-echo   [6] Salir
+echo   [5] Salir
 echo.
 echo --------------------------------------------------------
-set /p opcion="Selecciona una opcion (1-6): "
+set /p opcion="Selecciona una opcion (1-5): "
 
 if "%opcion%"=="1" goto broker
 if "%opcion%"=="2" goto publicador
 if "%opcion%"=="3" goto suscriptores
 if "%opcion%"=="4" goto simulador
-if "%opcion%"=="5" goto telegram
-if "%opcion%"=="6" goto salir
+if "%opcion%"=="5" goto salir
 
 echo.
 echo Opcion no valida. Intenta de nuevo.
@@ -38,7 +36,8 @@ goto menu
 :broker
 cls
 echo --------------------------------------------------------
-echo Verificando estado del Broker MQTT en 127.0.0.1:1883...
+echo Iniciando Broker MQTT Local en 127.0.0.1:1883...
+echo Presiona Ctrl+C para detener y volver al menu.
 echo --------------------------------------------------------
 echo.
 python src\broker_local.py
@@ -79,16 +78,6 @@ echo Presiona Ctrl+C para detener la simulacion ordenada.
 echo --------------------------------------------------------
 echo.
 python src\simulador_completo.py
-pause
-goto menu
-
-:telegram
-cls
-echo --------------------------------------------------------
-echo Diagnostico y Prueba de Conexion con Bots de Telegram...
-echo --------------------------------------------------------
-echo.
-python src\test_telegram.py
 pause
 goto menu
 

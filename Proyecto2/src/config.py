@@ -2,26 +2,25 @@
 # Parametros de red para MQTT, datos de los bots de Telegram y rutas locales
 
 import os
-import socket
 from pathlib import Path
 
-# Directorio base del proyecto
+# Directorio base del proyecto y carpeta de reportes
 directorio_proyecto = Path(__file__).resolve().parent.parent
 carpeta_reportes = directorio_proyecto / 'reportes'
 carpeta_reportes.mkdir(parents=True, exist_ok=True)
 
-# Cargador automatico de variables desde archivo .env si existe
-for ruta_env in [directorio_proyecto / '.env', Path(__file__).resolve().parent / '.env']:
-    if ruta_env.exists():
-        try:
-            with open(ruta_env, 'r', encoding='utf-8') as f:
-                for linea in f:
-                    linea = linea.strip()
-                    if linea and not linea.startswith('#') and '=' in linea:
-                        clave, valor = linea.split('=', 1)
-                        os.environ.setdefault(clave.strip(), valor.strip().strip('"\''))
-        except Exception:
-            pass
+# Cargamos variables de entorno desde el archivo .env si existe (para no exponer tokens en git)
+archivo_env = directorio_proyecto / '.env'
+if archivo_env.exists():
+    try:
+        with open(archivo_env, 'r', encoding='utf-8') as f:
+            for linea in f:
+                linea = linea.strip()
+                if linea and not linea.startswith('#') and '=' in linea:
+                    clave, valor = linea.split('=', 1)
+                    os.environ[clave.strip()] = valor.strip().strip('"\'')
+    except Exception as error_env:
+        print(f"[Config] Error al leer archivo .env: {error_env}")
 
 # Parametros de conexion para el Broker MQTT local
 broker_host = os.environ.get('MQTT_BROKER_HOST', '127.0.0.1')
@@ -38,31 +37,27 @@ topicos = [topico_particulas, topico_clima]
 intervalo_publicacion = float(os.environ.get('INTERVALO_PUBLICACION', 5.0))
 
 # Configuracion de los 4 bots de Telegram solicitados
-# Se pueden configurar via .env, variables de entorno o modificando este diccionario
-# Si se define TELEGRAM_TOKEN_DEFAULT o TELEGRAM_CHAT_ID_DEFAULT, se usara como fallback
-token_por_defecto = os.environ.get('TELEGRAM_TOKEN_DEFAULT', os.environ.get('TELEGRAM_TOKEN', ''))
-chat_id_por_defecto = os.environ.get('TELEGRAM_CHAT_ID_DEFAULT', os.environ.get('TELEGRAM_CHAT_ID', ''))
-
+# Si no hay tokens en .env o variables de entorno, el sistema opera automaticamente en Modo Simulado
 bots = {
     1: {
         'nombre': 'Bot 1 - Material Particulado PM1.0',
-        'token': os.environ.get('BOT_1_TOKEN', token_por_defecto) or 'TOKEN_BOT_1',
-        'chat_id': os.environ.get('BOT_1_CHAT_ID', chat_id_por_defecto) or 'CHAT_ID_1',
+        'token': os.environ.get('BOT_1_TOKEN', 'TOKEN_BOT_1'),
+        'chat_id': os.environ.get('BOT_1_CHAT_ID', 'CHAT_ID_1'),
     },
     2: {
         'nombre': 'Bot 2 - Material Particulado PM2.5',
-        'token': os.environ.get('BOT_2_TOKEN', token_por_defecto) or 'TOKEN_BOT_2',
-        'chat_id': os.environ.get('BOT_2_CHAT_ID', chat_id_por_defecto) or 'CHAT_ID_2',
+        'token': os.environ.get('BOT_2_TOKEN', 'TOKEN_BOT_2'),
+        'chat_id': os.environ.get('BOT_2_CHAT_ID', 'CHAT_ID_2'),
     },
     3: {
         'nombre': 'Bot 3 - Material Particulado PM10',
-        'token': os.environ.get('BOT_3_TOKEN', token_por_defecto) or 'TOKEN_BOT_3',
-        'chat_id': os.environ.get('BOT_3_CHAT_ID', chat_id_por_defecto) or 'CHAT_ID_3',
+        'token': os.environ.get('BOT_3_TOKEN', 'TOKEN_BOT_3'),
+        'chat_id': os.environ.get('BOT_3_CHAT_ID', 'CHAT_ID_3'),
     },
     4: {
         'nombre': 'Bot 4 - Medio Ambiente (Temp y HR)',
-        'token': os.environ.get('BOT_4_TOKEN', token_por_defecto) or 'TOKEN_BOT_4',
-        'chat_id': os.environ.get('BOT_4_CHAT_ID', chat_id_por_defecto) or 'CHAT_ID_4',
+        'token': os.environ.get('BOT_4_TOKEN', 'TOKEN_BOT_4'),
+        'chat_id': os.environ.get('BOT_4_CHAT_ID', 'CHAT_ID_4'),
     },
 }
 
@@ -75,12 +70,3 @@ def es_modo_simulado(token):
     if token_limpio == '' or token_limpio.startswith('TOKEN_BOT_') or 'YOUR_TOKEN' in token_limpio.upper():
         return True
     return False
-
-def broker_esta_activo(host=broker_host, puerto=broker_puerto, tiempo_espera=1.0):
-    # Verifica si el puerto del broker MQTT ya esta abierto y escuchando
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.settimeout(tiempo_espera)
-        try:
-            return s.connect_ex((host, puerto)) == 0
-        except Exception:
-            return False

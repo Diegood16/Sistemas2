@@ -12,7 +12,7 @@ if str(directorio_actual) not in sys.path:
     sys.path.insert(0, str(directorio_actual))
 
 import paho.mqtt.publish as publish
-from config import broker_host, broker_puerto, topico_particulas, topico_clima, intervalo_publicacion
+from config import broker_host, broker_puerto, topico_particulas, topico_clima
 
 def obtener_datos_particulas():
     # Genera lecturas de particulas segun los rangos del laboratorio:
@@ -32,7 +32,7 @@ def obtener_datos_clima():
 def main():
     print("[Publicador] Iniciando transmision de datos al broker MQTT...")
     print(f"[Publicador] Broker destino: {broker_host}:{broker_puerto}")
-    print(f"[Publicador] Intervalo de envio: cada {intervalo_publicacion} segundos.")
+    print("[Publicador] Intervalo de envio: cada 5 segundos.")
     print("[Publicador] Presiona Ctrl+C para salir.\n")
 
     try:
@@ -56,8 +56,8 @@ def main():
             # Mostramos en consola el envio en formato limpio
             print(f"[Publicador] Enviado a {topico}: {mensaje.strip()}")
 
-            # Pausa segun la especificacion
-            time.sleep(intervalo_publicacion)
+            # Pausa de 5 segundos segun la especificacion
+            time.sleep(5)
 
     except KeyboardInterrupt:
         print("\n[Publicador] Transmision detenida con Ctrl+C.")
