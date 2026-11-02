@@ -49,7 +49,8 @@ def tarea_publicador():
                 hostname=broker_host,
                 port=broker_puerto
             )
-            print(f"[Publicador] Envio #{numero_envio} -> {topico}: {mensaje.strip()}")
+            hora_actual = time.strftime("%H:%M:%S")
+            print(f"[{hora_actual}] [Publicador] Envio #{numero_envio} -> {topico}: {mensaje.strip()}")
             numero_envio += 1
         except Exception as error:
             if not evento_detener.is_set():

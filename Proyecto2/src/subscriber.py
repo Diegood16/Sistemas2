@@ -116,7 +116,8 @@ class ClienteSuscriptor:
 
         # Verificamos si completamos 10 muestras en ambos conjuntos de datos
         if len(self.historial_mp01) >= 10 and len(self.historial_temp) >= 10:
-            print(f"[{self.nombre_bot}] Acumuladas 10 muestras. Generando reporte grafico...")
+            hora_actual = time.strftime("%H:%M:%S")
+            print(f"[{hora_actual}] [{self.nombre_bot}] Acumuladas 10 muestras. Generando reporte grafico...")
             
             # Tomamos exactamente las primeras 10 muestras
             muestras_mp01 = list(self.historial_mp01[:10])
@@ -215,7 +216,8 @@ class ClienteSuscriptor:
             mensaje_caption = f"Reporte #{self.contador_reportes} - {self.nombre_bot}"
             with open(ruta_imagen, 'rb') as archivo_foto:
                 bot.sendPhoto(self.chat_id, archivo_foto, caption=mensaje_caption)
-            print(f"[{self.nombre_bot}] Reporte #{self.contador_reportes} enviado con exito a Telegram (Chat ID: {self.chat_id})")
+            hora_actual = time.strftime("%H:%M:%S")
+            print(f"[{hora_actual}] [{self.nombre_bot}] Reporte #{self.contador_reportes} enviado con exito a Telegram (Chat ID: {self.chat_id})")
         except Exception as error_telegram:
             # Atrapamos errores de conexion o token invalido para que el proceso no se caiga
             print(f"[{self.nombre_bot}] Error al enviar reporte por Telegram: {error_telegram}")

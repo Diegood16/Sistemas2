@@ -53,8 +53,9 @@ def main():
                 port=broker_puerto
             )
 
-            # Mostramos en consola el envio en formato limpio
-            print(f"[Publicador] Enviado a {topico}: {mensaje.strip()}")
+            # Mostramos en consola el envio con marca de tiempo precisa
+            hora_actual = time.strftime("%H:%M:%S")
+            print(f"[{hora_actual}] [Publicador] Enviado a {topico}: {mensaje.strip()}")
 
             # Pausa de 5 segundos segun la especificacion
             time.sleep(5)
