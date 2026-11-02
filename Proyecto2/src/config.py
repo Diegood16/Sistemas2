@@ -9,18 +9,25 @@ directorio_proyecto = Path(__file__).resolve().parent.parent
 carpeta_reportes = directorio_proyecto / 'reportes'
 carpeta_reportes.mkdir(parents=True, exist_ok=True)
 
-# Cargamos variables de entorno desde el archivo .env si existe (para no exponer tokens en git)
-archivo_env = directorio_proyecto / '.env'
-if archivo_env.exists():
-    try:
-        with open(archivo_env, 'r', encoding='utf-8') as f:
-            for linea in f:
-                linea = linea.strip()
-                if linea and not linea.startswith('#') and '=' in linea:
-                    clave, valor = linea.split('=', 1)
-                    os.environ[clave.strip()] = valor.strip().strip('"\'')
-    except Exception as error_env:
-        print(f"[Config] Error al leer archivo .env: {error_env}")
+# Cargamos variables de entorno desde el archivo .env si existe (buscamos en Proyecto2 o en la raiz)
+posibles_rutas_env = [
+    directorio_proyecto / '.env',
+    directorio_proyecto.parent / '.env',
+    Path.cwd() / '.env'
+]
+
+for archivo_env in posibles_rutas_env:
+    if archivo_env.exists():
+        try:
+            with open(archivo_env, 'r', encoding='utf-8') as f:
+                for linea in f:
+                    linea = linea.strip()
+                    if linea and not linea.startswith('#') and '=' in linea:
+                        clave, valor = linea.split('=', 1)
+                        os.environ.setdefault(clave.strip(), valor.strip().strip('"\''))
+            break
+        except Exception as error_env:
+            print(f"[Config] Error al leer archivo .env: {error_env}")
 
 # Parametros de conexion para el Broker MQTT local
 broker_host = os.environ.get('MQTT_BROKER_HOST', '127.0.0.1')
