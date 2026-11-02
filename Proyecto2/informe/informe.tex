@@ -5,13 +5,11 @@
 \usepackage[spanish,es-tabla]{babel}
 \usepackage[margin=2.5cm]{geometry}
 \usepackage{amsmath,amsfonts,amssymb}
-\usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{array}
 \usepackage{xcolor}
 \usepackage{listings}
 \usepackage{caption}
-\usepackage{subcaption}
 \usepackage{fancyhdr}
 \usepackage{hyperref}
 \usepackage{float}
@@ -24,7 +22,7 @@
 \definecolor{uctblue}{rgb}{0.08,0.22,0.45}
 \definecolor{boxbg}{rgb}{0.96,0.97,0.99}
 
-% --- Cajas de estudio destacadas ---
+% --- Cajas destacadas ---
 \tcbset{
     estudiobox/.style={
         colback=boxbg,
@@ -63,20 +61,18 @@
 % =========================================================================
 \begin{titlepage}
     \centering
-    \vspace*{0.8cm}
+    \vspace*{1.5cm}
     {\Large\textbf{UNIVERSIDAD CATÓLICA DE TEMUCO}}\\[0.3cm]
     {\large FACULTAD DE INGENIERÍA}\\[0.2cm]
-    {\large DEPARTAMENTO DE INGENIERÍA CIVIL INFORMÁTICA}\\[1.2cm]
+    {\large DEPARTAMENTO DE INGENIERÍA CIVIL INFORMÁTICA}\\[2.5cm]
     
-    \includegraphics[width=0.45\textwidth]{figuras/grafico_reporte.png}\\[1.0cm]
-    
-    {\LARGE\bfseries INFORME TÉCNICO Y GUÍA DE ESTUDIO}\\[0.3cm]
-    {\Large\bfseries PROYECTO \#2: SISTEMA DISTRIBUIDO DE TELEMETRÍA AMBIENTAL}\\[0.4cm]
-    {\large Arquitectura MQTT con Mosquitto, Procesamiento Multivariable en Ventana Móvil y Despacho Automatizado a Bots de Telegram}\\[1.2cm]
+    {\LARGE\bfseries INFORME TÉCNICO}\\[0.4cm]
+    {\Large\bfseries PROYECTO \#2: SISTEMA DISTRIBUIDO DE TELEMETRÍA AMBIENTAL}\\[0.5cm]
+    {\large Arquitectura MQTT con Mosquitto, Procesamiento Multivariable en Ventana Móvil y Despacho Automatizado a Bots de Telegram}\\[2.5cm]
     
     \textbf{Asignatura:} Sistemas Inteligentes (INFO1157)\\[0.2cm]
     \textbf{Docente:} Dr. Alberto Caro S.\\[0.2cm]
-    \textbf{Unidad:} Unidad 2 -- Sistemas de Sensores e Internet de las Cosas (IoT)\\[1.2cm]
+    \textbf{Unidad:} Unidad 2 -- Sistemas de Sensores e Internet de las Cosas (IoT)\\[2.0cm]
     
     \begin{flushright}
         \textbf{Estudiante:} Ingeniería Civil Informática\\
@@ -103,36 +99,34 @@ El monitoreo de la calidad del aire y variables meteorológicas es un pilar fund
     \item \textbf{Capa de Transporte:} Desplegar el broker MQTT Mosquitto en \texttt{127.0.0.1:1883} para coordinar el intercambio desacoplado de mensajes.
     \item \textbf{Capa de Emisión:} Implementar un nodo publicador periódico que transmita mediciones de material particulado (\texttt{DATA/MP}) y variables meteorológicas (\texttt{DATA/MA}) a razón de 5 segundos.
     \item \textbf{Capa de Suscripción y Buffering:} Construir cuatro clientes suscriptores que capturen el flujo de datos y mantengan un buffer temporal de 10 muestras para cada magnitud física.
-    \item \textbf{Capa de Renderizado y Visualización:} Replicar la Figura 3 del docente con cinco subplots apilados en \texttt{Matplotlib}, aplicando una arquitectura orientada a objetos inmune a colisiones de concurrencia.
+    \item \textbf{Capa de Renderizado y Visualización:} Replicar la especificación con cinco subplots apilados en \texttt{Matplotlib}, aplicando una arquitectura orientada a objetos inmune a colisiones de concurrencia.
     \item \textbf{Capa de Notificación y Ciberseguridad:} Conectar el sistema a cuatro bots independientes de Telegram utilizando variables de entorno protegidas (\texttt{.env}) para resguardar las credenciales en repositorios públicos.
 \end{enumerate}
 
 % =========================================================================
 % 2. FUNDAMENTOS CONCEPTUALES: ¿CÓMO FUNCIONA MQTT?
 % =========================================================================
-\section{Fundamentos Conceptuales: ¿Qué es MQTT y cómo funciona?}
-
-Para comprender la arquitectura del proyecto sin tecnicismos pesados, es necesario clarificar los conceptos fundamentales que rigen las comunicaciones en el Internet de las Cosas.
+\section{Fundamentos Conceptuales: Protocolo MQTT y Arquitectura IoT}
 
 \subsection{El Patrón Publicador/Suscriptor (Pub/Sub)}
-En la web clásica (HTTP), la comunicación se basa en el modelo cliente-servidor directo: un cliente pide un recurso y el servidor responde. Si 100 usuarios quisieran recibir datos de un sensor ambiental mediante HTTP, el sensor debería responder 100 peticiones individuales, agotando su batería y su procesador.
+En la web clásica (HTTP), la comunicación se basa en el modelo cliente-servidor directo: un cliente pide un recurso y el servidor responde. Si múltiples terminales quisieran recibir datos de un sensor ambiental mediante HTTP, el sensor debería responder peticiones individuales recurrentes, agotando su capacidad de cómputo y ancho de banda.
 
 El patrón \textbf{Pub/Sub} de MQTT resuelve esto mediante \textbf{desacoplamiento total}:
 \begin{itemize}
-    \item \textbf{El Publicador (Emisor):} No sabe quién va a leer los datos ni cuántos receptores existen. Simplemente publica un mensaje bajo una etiqueta temática llamada \textbf{Tópico} (por ejemplo, \texttt{DATA/MP}).
-    \item \textbf{El Suscriptor (Receptor):} Le indica al broker qué tópicos le interesan. Cuando llega un dato a ese tópico, el suscriptor lo recibe de inmediato.
-    \item \textbf{El Broker (Servidor Central):} Es el intermediario o árbitro. Recibe los paquetes de los emisores y los retransmite únicamente a los clientes que se hayan suscrito a dicho tema.
+    \item \textbf{El Publicador (Emisor):} No requiere conocer la identidad ni la cantidad de receptores existentes. Publica la información bajo una etiqueta temática denominada \textbf{Tópico} (por ejemplo, \texttt{DATA/MP}).
+    \item \textbf{El Suscriptor (Receptor):} Registra ante el broker los tópicos de su interés. Al publicarse información en dicho canal, el cliente la recibe de forma inmediata.
+    \item \textbf{El Broker (Servidor Central):} Actúa como nodo intermediario. Recibe los paquetes emitidos y los retransmite únicamente a los clientes con suscripción activa.
 \end{itemize}
 
-\subsection{¿Qué es Mosquitto?}
-\textbf{Eclipse Mosquitto} es un servidor (\textit{broker}) de código abierto que implementa las versiones 5.0, 3.1.1 y 3.1 del protocolo MQTT. 
+\subsection{El Broker Eclipse Mosquitto}
+\textbf{Eclipse Mosquitto} es un servidor (\textit{broker}) de código abierto altamente optimizado que implementa las especificaciones del protocolo MQTT. 
 \begin{itemize}
-    \item \textbf{¿Por qué se usa?}: Es extraordinariamente ligero (escrito en lenguaje C), consume apenas unos megabytes de memoria RAM y es capaz de manejar miles de conexiones simultáneas.
-    \item \textbf{Puerto estándar}: Opera por defecto en el puerto TCP \texttt{1883} (comunicación no cifrada de red local) o \texttt{8883} (con cifrado TLS/SSL).
+    \item \textbf{Eficiencia:} Implementado en C, presenta una huella de memoria mínima y alta capacidad para gestionar conexiones concurrentes.
+    \item \textbf{Puerto estándar:} Opera en el puerto TCP \texttt{1883} para comunicaciones en red local sin cifrado adicional.
 \end{itemize}
 
-\begin{tcolorbox}[estudiobox, title=Idea Clave para Explicar en Evaluación]
-\textbf{Mosquitto en palabras simples:} Imagina que Mosquitto es el conserje de un edificio con casilleros. El sensor (publicador) llega cada 5 segundos y deja una carta en el casillero llamado \texttt{"DATA/MP"}. El conserje (Mosquitto) no lee el contenido; solo revisa qué clientes le pidieron copia de ese casillero y se las entrega al instante. Los emisores y receptores nunca se conocen entre sí.
+\begin{tcolorbox}[estudiobox, title=Principio de Desacoplamiento en MQTT]
+\textbf{Funcionamiento Conceptual:} El nodo emisor despacha periódicamente lecturas hacia el broker bajo un tópico determinado (como \texttt{"DATA/MP"}). Mosquitto no manipula la carga útil; inspecciona su tabla de suscripciones activas y reenvía una copia exacta a cada suscriptor registrado. De este modo, emisores y receptores operan de manera totalmente asíncrona e independiente.
 \end{tcolorbox}
 
 \subsection{Estructura de Tópicos y Cargas Útiles (Payloads)}
@@ -155,31 +149,24 @@ En este proyecto se utilizan dos tópicos con cadenas en formato de texto plano 
 % =========================================================================
 % 3. FLUJO DE EJECUCIÓN PASO A PASO
 % =========================================================================
-\section{Flujo de Ejecución del Sistema: Del Sensor al Celular}
+\section{Flujo de Ejecución del Sistema: Del Sensor a la Notificación}
 
-El viaje de un dato a través de toda la infraestructura ocurre en 5 pasos secuenciales claramente coordinados:
+La transmisión y procesamiento de datos a través de la infraestructura se estructura en cinco etapas coordinadas:
 
 \begin{enumerate}
-    \item \textbf{Generación y Emisión (Publicador):} El script \texttt{publicador.py} se activa cada 5 segundos. Selecciona aleatoriamente si despachar lecturas de partículas o de clima, y las publica hacia el broker en \texttt{127.0.0.1:1883}.
+    \item \textbf{Generación y Emisión (Publicador):} El script \texttt{publicador.py} se activa cada 5 segundos. Selecciona de forma balanceada si despachar lecturas de partículas o de clima, y las publica hacia el broker en \texttt{127.0.0.1:1883}.
     \item \textbf{Enrutamiento Central (Broker Mosquitto):} Mosquitto recibe el paquete y lo replica de inmediato a los cuatro clientes suscriptores que mantienen conexiones TCP abiertas y activas.
     \item \textbf{Acumulación en Ventana Móvil (Suscriptores):} Cada cliente suscriptor recibe la cadena de texto en su función \texttt{on\_message()}, la descompone con \texttt{split(',')} y guarda los números en listas de memoria.
     \item \textbf{Disparo del Gráfico (10 Muestras):} Cuando el cliente detecta que acumuló al menos 10 lecturas de partículas y 10 de clima, toma las primeras 10 muestras y activa la función \texttt{generar\_grafico()}.
-    \item \textbf{Envío por Telegram (Despacho a Teléfono):} El gráfico generado se almacena como imagen PNG de alta fidelidad. Luego, utilizando el token de su bot asignado y el \textit{Chat ID} del usuario, invoca el método \texttt{sendPhoto()} de la API de Telegram, haciendo sonar la notificación en el celular.
+    \item \textbf{Envío por Telegram (Despacho a Teléfono):} El gráfico generado se almacena como imagen PNG de alta fidelidad. Luego, utilizando el token de su bot asignado y el \textit{Chat ID} del usuario, invoca el método \texttt{sendPhoto()} de la API de Telegram, notificando al usuario en su dispositivo móvil.
 \end{enumerate}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.75\textwidth]{figuras/grafico_reporte.png}
-    \caption{Ejemplo real de reporte multi-eje generado y enviado automáticamente al smartphone del usuario.}
-    \label{fig:reporte_real}
-\end{figure}
 
 % =========================================================================
 % 4. MAPEO DE MÓDULOS DEL CÓDIGO
 % =========================================================================
-\section{Estructura del Software y Guía de Navegación del Código}
+\section{Estructura del Software y Organización Modular}
 
-El proyecto fue diseñado de manera modular para que cada archivo tenga una única responsabilidad bien definida:
+El proyecto fue diseñado de manera modular para asegurar la separación clara de responsabilidades:
 
 \begin{table}[H]
 \centering
@@ -192,7 +179,7 @@ El proyecto fue diseñado de manera modular para que cada archivo tenga una úni
 \texttt{.env} & \texttt{Proyecto2/} & Credenciales privadas (Tokens y Chat ID) ignoradas por Git. \\
 \texttt{.env.example} & \texttt{Proyecto2/} & Plantilla pública de configuración sin tokens reales. \\
 \texttt{config.py} & \texttt{Proyecto2/src/} & Lee el archivo \texttt{.env}, define puertos MQTT y credenciales de los bots. \\
-\texttt{publicador.py} & \texttt{Proyecto2/src/} & Emite lecturas simuladas cada 5 segundos (código base de cátedra). \\
+\texttt{publicador.py} & \texttt{Proyecto2/src/} & Emite lecturas periódicas cada 5 segundos. \\
 \texttt{subscriber.py} & \texttt{Proyecto2/src/} & Clase base: gestión de red MQTT, ventana de 10 muestras, gráficos y Telegram. \\
 \texttt{cliente1.py} al \texttt{4.py} & \texttt{Proyecto2/src/} & Scripts ejecutables independientes para lanzar cada cliente por separado. \\
 \texttt{simulador\_completo.py} & \texttt{Proyecto2/src/} & Ejecutable todo-en-uno que levanta hilos paralelos para toda la solución. \\
@@ -200,81 +187,47 @@ El proyecto fue diseñado de manera modular para que cada archivo tenga una úni
 \end{tabular}
 \end{table}
 
-\subsection{Detalle del Funcionamiento de los 4 Clientes}
-¿Por qué existen cuatro clientes si todos generan el gráfico de cinco curvas?
+\subsection{Detalle del Funcionamiento de los Cuatro Clientes}
+Cada cliente suscriptor representa una estación o bot temático especializado:
 \begin{itemize}
-    \item En la especificación del docente, cada cliente suscriptor representa una estación o bot temático especializado:
-    \begin{itemize}
-        \item \textbf{Cliente 1:} Asociado al \textbf{Bot 1} (Foco: Material Particulado PM 1.0).
-        \item \textbf{Cliente 2:} Asociado al \textbf{Bot 2} (Foco: Material Particulado PM 2.5).
-        \item \textbf{Cliente 3:} Asociado al \textbf{Bot 3} (Foco: Material Particulado PM 10).
-        \item \textbf{Cliente 4:} Asociado al \textbf{Bot 4} (Foco: Medio Ambiente, Temperatura y Humedad).
-    \end{itemize}
-    \item Cada uno recibe ambos tópicos para poder contextualizar la gráfica completa, pero despacha su reporte hacia su bot respectivo con su propio token individual.
+    \item \textbf{Cliente 1:} Asociado al \textbf{Bot 1} (Foco: Material Particulado PM 1.0).
+    \item \textbf{Cliente 2:} Asociado al \textbf{Bot 2} (Foco: Material Particulado PM 2.5).
+    \item \textbf{Cliente 3:} Asociado al \textbf{Bot 3} (Foco: Material Particulado PM 10).
+    \item \textbf{Cliente 4:} Asociado al \textbf{Bot 4} (Foco: Medio Ambiente, Temperatura y Humedad).
 \end{itemize}
+Cada uno recibe ambos tópicos para contextualizar la gráfica completa de 5 subplots, despachando su reporte hacia su bot respectivo con su propio token individual.
 
 % =========================================================================
 % 5. INGENIERÍA Y RESOLUCIÓN DE PROBLEMAS TÉCNICOS
 % =========================================================================
 \section{Decisiones de Ingeniería y Desafíos Resueltos}
 
-Durante la implementación surgieron desafíos técnicos reales que fueron resueltos aplicando principios sólidos de ingeniería de software.
+Durante la implementación surgieron desafíos técnicos que fueron resueltos aplicando principios sólidos de ingeniería de software.
 
-\subsection{El Problema de la Concurrencia en Matplotlib (Fondo Blanco)}
-En las primeras pruebas, cuando los cuatro clientes corrían en paralelo, los dos primeros reportes a veces llegaban a Telegram como una imagen completamente blanca (de apenas 7 KB).
+\subsection{Gestión de Concurrencia en Matplotlib}
+Al ejecutar los cuatro clientes suscriptores en paralelo, se identificó un riesgo de colisión al renderizar las figuras de manera simultánea.
 \begin{itemize}
-    \item \textbf{Causa Técnica:} La interfaz estándar \texttt{matplotlib.pyplot} (\texttt{plt}) es una máquina de estados global \textbf{no sincronizada para multi-hilo}. Cuando el Cliente 1 y el Cliente 2 acumulaban la muestra 10 en el mismo milisegundo, ambos llamaban a \texttt{plt.subplots()} y \texttt{plt.close()} al unísono. Un hilo reseteaba el lienzo global mientras el otro intentaba guardar el archivo, produciendo una captura vacía.
-    \item \textbf{Solución de Ingeniería:} Se migró la generación gráfica a la \textbf{API Orientada a Objetos pura de Matplotlib}:
+    \item \textbf{Causa Técnica:} La interfaz estándar \texttt{matplotlib.pyplot} opera sobre una máquina de estados global compartida que no está diseñada para acceso concurrente multi-hilo. Llamadas concurrentes a \texttt{subplots()} o \texttt{close()} entre diferentes hilos pueden reiniciar el contexto de dibujo durante la exportación a disco.
+    \item \textbf{Solución Implementada:} Se migró la generación gráfica a la \textbf{API Orientada a Objetos de Matplotlib}:
     \begin{itemize}
-        \item Se eliminó \texttt{pyplot} del generador.
-        \item Cada hilo instancia su propio objeto \texttt{Figure(figsize=(7.5, 7))} y su propio motor de renderizado en memoria \texttt{FigureCanvasAgg(figura)}.
-        \item Se añadió un candado de exclusión mutua (\texttt{threading.Lock}) y una validación de integridad de archivo (mínimo 20 KB) antes de enviar a Telegram.
-        \item \textbf{Resultado:} Cero colisiones; imágenes nítidas de 98--106 KB generadas de forma continua y segura.
+        \item Se prescindió del uso de \texttt{pyplot} en el módulo de generación.
+        \item Cada hilo instancia de manera independiente un objeto \texttt{Figure(figsize=(7.5, 7))} con su propio motor de dibujo \texttt{FigureCanvasAgg(figura)}.
+        \item Se incorporó un bloqueo de exclusión mutua (\texttt{threading.Lock}) y validación de tamaño de archivo previa al despacho por red.
+        \item \textbf{Resultado:} Generación estable de reportes de alta calidad sin interferencias entre procesos concurrentes.
     \end{itemize}
 \end{itemize}
 
 \subsection{Ciberseguridad y Manejo de Credenciales con \texttt{.env}}
-Uno de los riesgos más comunes en proyectos de desarrollo es subir accidentalmente credenciales a repositorios públicos de GitHub.
+Para resguardar los tokens de autenticación de los bots de Telegram se implementaron directrices estándar de seguridad:
 \begin{itemize}
-    \item Los tokens de Telegram son claves secretas de autenticación. Si un bot de scraping de internet los encuentra en GitHub, los tokens pueden ser usurpados o la plataforma los revoca automáticamente.
-    \item \textbf{Buenas Prácticas Aplicadas:}
-    \begin{enumerate}
-        \item Los tokens se almacenan exclusivamente en el archivo local \texttt{.env}.
-        \item El archivo \texttt{.gitignore} bloquea la inclusión de cualquier archivo de entorno (\texttt{*.env}) y las carpetas de caché compilada (\texttt{\_\_pycache\_\_}).
-        \item Se provee \texttt{.env.example} como plantilla didáctica para que cualquier evaluador sepa qué variables existen sin comprometer las claves reales.
-        \item Validación estricta de credenciales: el sistema valida la presencia de los tokens y Chat ID en el archivo \texttt{.env} antes de despachar hacia la API de Telegram, emitiendo alertas claras por consola en caso de omisión.
-    \end{enumerate}
+    \item Los tokens se alojan exclusivamente en el archivo local \texttt{.env}.
+    \item El archivo \texttt{.gitignore} restringe la indexación de archivos de entorno (\texttt{*.env}) y directorios de caché de Python (\texttt{\_\_pycache\_\_}).
+    \item Se incluye \texttt{.env.example} como plantilla de referencia con los nombres de variables requeridos sin datos confidenciales.
+    \item El cargador de configuración valida la existencia de credenciales antes del envío por Telegram, emitiendo mensajes de diagnóstico informativos en la consola.
 \end{itemize}
 
 % =========================================================================
-% 6. BANCO DE PREGUNTAS CLAVE PARA EVALUACIÓN ORAL
-% =========================================================================
-\section{Guía de Estudio: Banco de Preguntas Típicas para Defensa Oral}
-
-A continuación se presentan las preguntas más habituales que un evaluador de la asignatura puede formular durante la revisión del proyecto, junto con su fundamentación técnica recomendada:
-
-\begin{tcolorbox}[estudiobox, title=P1: ¿Por qué usamos MQTT en lugar de una API REST HTTP tradicional?]
-\textbf{Respuesta:} Porque MQTT está optimizado para IoT. Su cabecera de red es mínima (apenas 2 bytes frente a los cientos de bytes de cabeceras HTTP), consume mucha menos energía y ancho de banda, y el desacoplamiento emisor-receptor permite que si un cliente se desconecta o se reinicia, el publicador sigue funcionando sin bloquearse ni generar errores de conexión.
-\end{tcolorbox}
-
-\begin{tcolorbox}[estudiobox, title=P2: ¿Qué sucede si el broker Mosquitto se detiene en plena ejecución?]
-\textbf{Respuesta:} Los clientes suscriptores y el publicador perderán la conexión TCP y comenzarán a reintentar la reconexión periódicamente gracias al parámetro \texttt{keepalive=60} de Paho-MQTT. Una vez restablecido el servicio de Mosquitto en Windows (\texttt{net start mosquitto}), los clientes reanudan automáticamente la recepción de datos y la ventana móvil de 10 muestras sin necesidad de reiniciar manualmente los programas.
-\end{tcolorbox}
-
-\begin{tcolorbox}[estudiobox, title=P3: ¿Cómo sabe el cliente cuándo disparar el gráfico de 10 datos?]
-\textbf{Respuesta:} En la función \texttt{on\_message()}, el cliente alimenta listas dinámicas de historial (\texttt{historial\_mp01}, \texttt{historial\_temp}, etc.). Tras cada mensaje, evalúa la condición lógica:
-\begin{equation*}
-    \texttt{if len(historial\_mp01) >= 10 and len(historial\_temp) >= 10:}
-\end{equation*}
-Cuando ambos arreglos tienen al menos 10 muestras, extrae los primeros 10 elementos (\texttt{[:10]}), genera la figura multieje y conserva los remanentes mediante corte (\texttt{[10:]}) para no perder lecturas futuras.
-\end{tcolorbox}
-
-\begin{tcolorbox}[estudiobox, title=P4: ¿Cómo viaja la imagen desde el script de Python hasta el teléfono celular?]
-\textbf{Respuesta:} Mediante una petición HTTP POST segura hacia la API pública de Telegram (\texttt{https://api.telegram.org/bot<TOKEN>/sendPhoto}). La biblioteca \texttt{telepot} codifica la imagen en formato multipart/form-data junto con el identificador del destinatario (\texttt{chat\_id}). Los servidores de Telegram procesan la solicitud y la reenvían inmediatamente como notificación push a la aplicación móvil instalada en el dispositivo.
-\end{tcolorbox}
-
-% =========================================================================
-% 7. CONCLUSIONES
+% 6. CONCLUSIONES
 % =========================================================================
 \section{Conclusiones}
 

@@ -5,13 +5,11 @@
 \usepackage[spanish,es-tabla]{babel}
 \usepackage[margin=2.5cm]{geometry}
 \usepackage{amsmath,amsfonts,amssymb}
-\usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{array}
 \usepackage{xcolor}
 \usepackage{listings}
 \usepackage{caption}
-\usepackage{subcaption}
 \usepackage{fancyhdr}
 \usepackage{hyperref}
 \usepackage{float}
@@ -24,7 +22,7 @@
 \definecolor{uctblue}{rgb}{0.08,0.22,0.45}
 \definecolor{boxbg}{rgb}{0.96,0.97,0.99}
 
-% --- Cajas de estudio destacadas ---
+% --- Cajas destacadas ---
 \tcbset{
     estudiobox/.style={
         colback=boxbg,
@@ -63,20 +61,18 @@
 % =========================================================================
 \begin{titlepage}
     \centering
-    \vspace*{0.8cm}
+    \vspace*{1.5cm}
     {\Large\textbf{UNIVERSIDAD CATÓLICA DE TEMUCO}}\\[0.3cm]
     {\large FACULTAD DE INGENIERÍA}\\[0.2cm]
-    {\large DEPARTAMENTO DE INGENIERÍA CIVIL INFORMÁTICA}\\[1.2cm]
+    {\large DEPARTAMENTO DE INGENIERÍA CIVIL INFORMÁTICA}\\[2.5cm]
     
-    \includegraphics[width=0.45\textwidth]{figuras/simulacion_3d.jpg}\\[1.0cm]
-    
-    {\LARGE\bfseries INFORME TÉCNICO Y GUÍA DE ESTUDIO}\\[0.3cm]
-    {\Large\bfseries PROYECTO \#1: SIMULADOR 3D DE SENSOR INERCIAL WITMOTION}\\[0.4cm]
-    {\large Decodificación Binaria de Bajo Nivel (\texttt{ctypes}), Cinemática de Euler $Z-Y-X$ y Renderizado Interactivo en \texttt{VPython}}\\[1.2cm]
+    {\LARGE\bfseries INFORME TÉCNICO}\\[0.4cm]
+    {\Large\bfseries PROYECTO \#1: SIMULADOR 3D DE SENSOR INERCIAL WITMOTION}\\[0.5cm]
+    {\large Decodificación Binaria de Bajo Nivel (\texttt{ctypes}), Cinemática de Euler $Z-Y-X$ y Renderizado Interactivo en \texttt{VPython}}\\[2.5cm]
     
     \textbf{Asignatura:} Sistemas Inteligentes (INFO1157)\\[0.2cm]
     \textbf{Docente:} Dr. Alberto Caro S.\\[0.2cm]
-    \textbf{Unidad:} Unidad 2 -- Adquisición y Procesamiento de Señales Sensoriales\\[1.2cm]
+    \textbf{Unidad:} Unidad 2 -- Adquisición y Procesamiento de Señales Sensoriales\\[2.0cm]
     
     \begin{flushright}
         \textbf{Estudiante:} Ingeniería Civil Informática\\
@@ -112,9 +108,9 @@ El presente proyecto implementa una solución completa en Python para procesar u
 % =========================================================================
 % 2. FUNDAMENTOS CONCEPTUALES DEL SENSOR Y LA TRAMA
 % =========================================================================
-\section{Fundamentos Conceptuales: ¿Cómo funciona el Sensor y su Trama?}
+\section{Fundamentos Conceptuales: Sensor y Trama Binaria}
 
-\subsection{¿Qué es el sensor WitMotion BWT901CL?}
+\subsection{Características del Sensor WitMotion BWT901CL}
 Es un sensor inercial inteligente de 9 grados de libertad (9-DOF). En su interior contiene:
 \begin{itemize}
     \item Un microprocesador ARM Cortex-M0 que ejecuta internamente un Filtro de Kalman Extendido (EKF).
@@ -125,8 +121,8 @@ Es un sensor inercial inteligente de 9 grados de libertad (9-DOF). En su interio
 
 El microprocesador fusiona estas lecturas y entrega directamente los ángulos de actitud espacial: \textbf{Roll} (balanceo), \textbf{Pitch} (cabeceo) y \textbf{Yaw} (guiñada/rumbo).
 
-\begin{tcolorbox}[estudiobox, title=Idea Clave para Explicar en Evaluación]
-\textbf{El sensor en palabras simples:} En vez de entregarnos números de aceleración crudos y difíciles de interpretar, el procesador interno del sensor calcula la orientación física exacta en el espacio tridimensional y nos manda paquetes binarios compactos de 11 bytes a través de Bluetooth o puerto serial a 10 Hz (10 veces por segundo).
+\begin{tcolorbox}[estudiobox, title=Principio de Fusión y Salida Sensorial]
+\textbf{Principio de Funcionamiento:} En lugar de transmitir aceleraciones crudas sujetas a ruido de alta frecuencia, el procesador interno del sensor calcula la orientación física exacta en el espacio tridimensional y emite paquetes binarios compactos de 11 bytes a través de Bluetooth o puerto serial a 10 Hz (10 veces por segundo).
 \end{tcolorbox}
 
 \subsection{Estructura Byte a Byte de la Trama de Ángulos (0x53)}
@@ -160,7 +156,7 @@ Para garantizar que ningún byte se haya dañado en la transmisión por Bluetoot
 \begin{equation}
 \text{Checksum}_{\text{calculado}} = \left( B_0 + B_1 + B_2 + \dots + B_9 \right) \pmod{256}
 \end{equation}
-Si $\text{Checksum}_{\text{calculado}} == B_{10}$, el paquete es íntegro y legítimo. En nuestro análisis de \texttt{inercial.bin}, las \textbf{406 tramas} pasaron exitosamente esta prueba ($100\%$ de validez).
+Si $\text{Checksum}_{\text{calculado}} == B_{10}$, el paquete es íntegro y legítimo. En el análisis de \texttt{inercial.bin}, las \textbf{406 tramas} pasaron exitosamente esta prueba ($100\%$ de validez).
 
 \subsection{Fórmula de Conversión a Grados Sexagesimales}
 Cada ángulo se almacena en 2 bytes (16 bits) bajo formato \textbf{Little-Endian} y complemento a dos con signo:
@@ -173,7 +169,7 @@ El fabricante estipula que este rango numérico digital de 16 bits cubre el inte
 \end{equation}
 
 % =========================================================================
-% 3. ARQUITECTURA DEL SOFTWARE Y VISUALIZADOR 3D
+% 3. ARQUITECTURA DEL SOFTWARE Y ENTORNO 3D
 % =========================================================================
 \section{Arquitectura del Software y Entorno Tridimensional}
 
@@ -194,21 +190,14 @@ El código se organizó en tres módulos limpios, manteniendo principios de alta
 \end{tabular}
 \end{table}
 
-\subsection{Modelado Geométrico y Rotación Absoluta sin Deriva}
-Siguiendo las especificaciones exactas del profesor Alberto Caro:
+\subsection{Modelado Geométrico}
+Siguiendo las especificaciones exactas del proyecto:
 \begin{itemize}
     \item \textbf{Cuerpo del Sensor:} Una caja roja de dimensiones $(100, 60, 160)$ unidades.
     \item \textbf{Eje X (Transversal):} Barra cilíndrica azul de dimensiones $(200, 2, 2)$.
     \item \textbf{Eje Y (Vertical):} Barra cilíndrica verde de dimensiones $(2, 200, 2)$.
     \item \textbf{Plano Base de Referencia:} Un prisma azul oscuro debajo del sensor de dimensiones $(300, 10, 300)$.
 \end{itemize}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.7\textwidth]{figuras/simulacion_3d.jpg}
-    \caption{Simulador 3D ejecutándose con telemetría en pantalla y controles interactivos.}
-    \label{fig:captura_3d}
-\end{figure}
 
 \subsection{Rotación en Secuencia $Z-Y-X$ sin Deriva (\textit{Drift})}
 Si en cada cuadro de la animación se rotara sobre la orientación anterior, los pequeños errores de punto flotante de la computadora se acumularían, haciendo que el sensor se deforme o se desvíe con el tiempo (\textit{drift}). 
@@ -225,20 +214,13 @@ Para solucionar esto, la función \texttt{orientar\_absoluto()} resetea el senso
 % =========================================================================
 \section{Resultados y Análisis Experimental}
 
-Al procesar las 406 tramas de \texttt{inercial.bin}, se generó la curva temporal completa de los tres ángulos (Figura \ref{fig:curvas_p1}):
+Al procesar las 406 tramas de \texttt{inercial.bin}, se obtuvo la serie temporal completa de los tres ángulos de orientación:
 \begin{itemize}
-    \item \textbf{Roll (Azul):} Muestra oscilaciones periódicas entre $-20^\circ$ y $+25^\circ$.
-    \item \textbf{Pitch (Verde):} Inclinaciones suaves confinadas dentro de $\pm 15^\circ$.
-    \item \textbf{Yaw (Rojo):} Giro progresivo continuo acumulando un cambio de rumbo de $180^\circ$.
-    \item \textbf{Duración total:} $406 \text{ tramas} \div 10 \text{ Hz} = 40.6 \text{ segundos}$, coincidiendo al milisegundo con la grabación \texttt{MyDemo.mp4}.
+    \item \textbf{Roll:} Muestra oscilaciones periódicas entre $-20^\circ$ y $+25^\circ$, correspondientes al balanceo transversal del sensor.
+    \item \textbf{Pitch:} Registra inclinaciones longitudinales suaves confinadas dentro del rango $\pm 15^\circ$.
+    \item \textbf{Yaw:} Presenta un giro progresivo continuo acumulando un cambio de rumbo de $180^\circ$.
+    \item \textbf{Duración total:} $406 \text{ tramas} \div 10 \text{ Hz} = 40.6 \text{ segundos}$, coincidiendo exactamente con la duración de la grabación de referencia \texttt{MyDemo.mp4}.
 \end{itemize}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.9\textwidth]{figuras/curvas_angulos.png}
-    \caption{Curvas de telemetría angular decodificadas a lo largo de las 406 tramas.}
-    \label{fig:curvas_p1}
-\end{figure}
 
 % =========================================================================
 % 5. MANUAL DE CONTROLES INTERACTIVOS
@@ -266,28 +248,7 @@ Reiniciar animación & Tecla \texttt{R} & \texttt{[🔄 Reiniciar]} \\
 \end{table}
 
 % =========================================================================
-% 6. BANCO DE PREGUNTAS TÍPICAS PARA EVALUACIÓN ORAL
-% =========================================================================
-\section{Guía de Estudio: Preguntas Clave para la Defensa Oral}
-
-\begin{tcolorbox}[estudiobox, title=P1: ¿Por qué usamos la librería ctypes para decodificar la trama?]
-\textbf{Respuesta:} Porque en lenguajes como C las tramas de microcontroladores se mapean directamente como estructuras en memoria (\texttt{struct}). En Python, el módulo estándar \texttt{ctypes} nos permite definir una clase que hereda de \texttt{ctypes.Structure} con campos de tipo \texttt{c\_ubyte} (1 byte sin signo). Esto garantiza un mapeo exacto de los 11 bytes sin desperdicio de memoria ni sobrecoste de procesamiento.
-\end{tcolorbox}
-
-\begin{tcolorbox}[estudiobox, title=P2: ¿Cómo funciona el Checksum y qué pasa si una trama llega dañada?]
-\textbf{Respuesta:} Se suman los primeros 10 bytes ($B_0$ a $B_9$) y se aplica la operación módulo 256 (\texttt{\% 256}). El resultado se compara con el byte $B_{10}$ recibido. Si no coinciden, la trama sufrió pérdida de bits o interferencia electromagnética; el software la descarta de inmediato para no descalibrar la orientación del modelo 3D.
-\end{tcolorbox}
-
-\begin{tcolorbox}[estudiobox, title=P3: ¿Por qué dividimos por 32768 y multiplicamos por 180?]
-\textbf{Respuesta:} Porque los ángulos se transmiten en variables de 16 bits con signo (formato \textit{signed short}). El valor máximo positivo de un entero de 16 bits con signo es $32767$ y el mínimo es $-32768$. La escala del fabricante establece que la máxima excursión angular es de $\pm 180^\circ$. Por ende, la relación de escala directa es $\frac{\text{ValorCrudo}}{32768.0} \times 180.0$.
-\end{tcolorbox}
-
-\begin{tcolorbox}[estudiobox, title=P4: ¿Por qué en VPython moderno la ventana se abre en el navegador y no como ventana Win32 nativa?]
-\textbf{Respuesta:} El video del profesor (\texttt{MyDemo.mp4}) fue grabado con \textbf{VPython 6 (Classic)}, el cual corría en Python 2.7 y usaba librerías C++ nativas (wxWidgets y OpenGL). A partir de Python 3.7+, VPython se modernizó a la versión 7, la cual compila la escena 3D en WebGL a través de GlowScript y la renderiza en el navegador web local. La física vectorial y las funciones geométricas son exactamente las mismas, pero con mejor aceleración por hardware.
-\end{tcolorbox}
-
-% =========================================================================
-% 7. CONCLUSIONES
+% 6. CONCLUSIONES
 % =========================================================================
 \section{Conclusiones}
 
