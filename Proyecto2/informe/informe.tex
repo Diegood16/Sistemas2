@@ -208,16 +208,17 @@ La distribución de reportes hacia los cuatro clientes de Telegram se implement�
 Para ejecutar el sistema completo en Windows CMD, se provee el lanzador por lotes interactivo \texttt{ejecutar.bat}:
 
 \begin{lstlisting}[language=bash]
-cd "d:\Universidad\Sistemas Inteligentes\Sistemas U2\Proyectos\Proyecto2"
+cd "Sistemas2/Proyecto2"
 ejecutar.bat
 \end{lstlisting}
 
 El menú interactivo permite:
 \begin{itemize}
-    \item \textbf{Opción 1:} Iniciar el Broker MQTT local en Python (\texttt{127.0.0.1:1883}).
+    \item \textbf{Opción 1:} Estado y verificación del Broker MQTT oficial (Mosquitto en \texttt{127.0.0.1:1883}) con fallback local en Python.
     \item \textbf{Opción 2:} Iniciar el publicador de datos periódico (\texttt{publicador.py}).
     \item \textbf{Opción 3:} Iniciar los cuatro clientes suscriptores en ventanas separadas.
     \item \textbf{Opción 4:} Iniciar el simulador completo todo-en-uno (\texttt{simulador\_completo.py}).
+    \item \textbf{Opción 5:} Diagnóstico y prueba de conectividad con los bots de Telegram (\texttt{test\_telegram.py}).
 \end{itemize}
 
 % =========================================================================
