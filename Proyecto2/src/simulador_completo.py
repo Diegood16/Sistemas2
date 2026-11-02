@@ -1,12 +1,11 @@
 # Proyecto 2 - Simulador Completo (Todo en Uno)
-# Ejecuta en paralelo el broker local, el publicador y los 4 suscriptores
-# Permite probar toda la arquitectura sin tener que abrir varias terminales
+# Ejecuta en paralelo el publicador de datos y los 4 clientes suscriptores
+# Conecta directamente al broker Mosquitto en 127.0.0.1:1883 segun la pauta
 
 import sys
 import time
 import random
-import asyncio
-import logging
+import socket
 import threading
 from pathlib import Path
 
@@ -16,61 +15,26 @@ if str(directorio_actual) not in sys.path:
     sys.path.insert(0, str(directorio_actual))
 
 import paho.mqtt.publish as publish
-from amqtt.broker import Broker
 from config import broker_host, broker_puerto, topico_particulas, topico_clima
-from broker_local import configuracion_broker
 from subscriber import ClienteSuscriptor
 from publicador import obtener_datos_particulas, obtener_datos_clima
 
-# Silenciamos mensajes verbosos de amqtt
-logging.getLogger('amqtt').setLevel(logging.WARNING)
-
-# Evento global para coordinar el apagado ordenado de todos los hilos
+# Evento global para coordinar el apagado ordenado de los hilos
 evento_detener = threading.Event()
 
-def tarea_broker():
-    # Revisamos si ya hay un broker corriendo en el puerto (como el servicio Mosquitto de Windows)
-    import socket
+def verificar_broker_mosquitto():
+    # Comprueba si el broker Mosquitto esta escuchando en el puerto 1883
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        ya_activo = (s.connect_ex((broker_host, broker_puerto)) == 0)
-
-    if ya_activo:
-        print(f"[Simulador] Broker MQTT detectado ya activo en {broker_host}:{broker_puerto} (Mosquitto). Usando broker existente.")
-        return
-
-    # Si no habia ninguno, levantamos el broker local en Python
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
-    async def correr():
-        servidor_broker = Broker(configuracion_broker)
-        await servidor_broker.start()
-        print("[Simulador] Broker MQTT local iniciado en 127.0.0.1:1883")
-        
-        # Mantenemos vivo el broker mientras no se ordene detener
-        while not evento_detener.is_set():
-            await asyncio.sleep(0.3)
-            
-        print("[Simulador] Apagando Broker MQTT...")
-        await servidor_broker.shutdown()
-        print("[Simulador] Broker MQTT detenido.")
-
-    try:
-        loop.run_until_complete(correr())
-    except Exception as error:
-        if not evento_detener.is_set():
-            print(f"[Simulador] Error en el broker local: {error}")
-    finally:
-        loop.close()
+        s.settimeout(2.0)
+        return s.connect_ex((broker_host, broker_puerto)) == 0
 
 def tarea_publicador():
-    # Esperamos 3 segundos iniciales para asegurar que broker y clientes esten listos
-    evento_detener.wait(3.0)
-    print("[Simulador] Publicador de datos iniciado. Enviando cada 5 segundos...")
-    
+    # Espera 2 segundos para asegurar que los clientes esten suscritos
+    evento_detener.wait(2.0)
+    print("[Publicador] Publicador iniciado. Enviando datos a Mosquitto cada 5 segundos...\n")
+
     numero_envio = 1
     while not evento_detener.is_set():
-        # Elegimos al azar si enviamos datos de particulas o clima
         if random.choice([True, False]):
             topico = topico_particulas
             mensaje = obtener_datos_particulas()
@@ -89,70 +53,68 @@ def tarea_publicador():
             numero_envio += 1
         except Exception as error:
             if not evento_detener.is_set():
-                print(f"[Publicador] Error al publicar datos: {error}")
+                print(f"[Publicador] Error al publicar en Mosquitto: {error}")
 
-        # Esperamos 5 segundos o despertamos antes si se presiono Ctrl+C
+        # Esperamos 5 segundos segun la pauta del profesor
         evento_detener.wait(5.0)
 
-    print("[Simulador] Publicador detenido.")
+    print("[Publicador] Publicador detenido.")
 
 def main():
-    print("Iniciando Simulador Completo de Proyecto 2...")
-    print("Se levantaran el Broker local, los 4 Clientes y el Publicador.")
-    print("Presiona Ctrl+C en cualquier momento para detener todo el sistema.\n")
+    print("==========================================================")
+    print("    SIMULADOR INTEGRADO PROYECTO 2 (MOSQUITTO + CLIENTES) ")
+    print("==========================================================\n")
 
-    # 1. Levantamos el broker en un hilo de fondo
-    hilo_broker = threading.Thread(target=tarea_broker, name="Hilo-Broker", daemon=True)
-    hilo_broker.start()
+    # Verificamos que el broker Mosquitto este activo segun exige la pauta
+    if not verificar_broker_mosquitto():
+        print(f"[ERROR] No se pudo conectar al Broker Mosquitto en {broker_host}:{broker_puerto}.")
+        print("Asegurate de que el servicio de Mosquitto este iniciado en Windows.")
+        print("Puedes iniciarlo desde la consola de Windows con: net start mosquitto")
+        print("\nPresiona Enter para salir...")
+        input()
+        return
 
-    # Damos tiempo para que el broker este escuchando en el puerto 1883
-    time.sleep(1.5)
+    print(f"[OK] Broker Mosquitto detectado y activo en {broker_host}:{broker_puerto}.\n")
 
-    # 2. Inicializamos los 4 clientes suscriptores
+    # Inicializamos y arrancamos los 4 clientes suscriptores
     clientes = [ClienteSuscriptor(cliente_id=i) for i in range(1, 5)]
     hilos_suscriptores = []
 
     for cliente in clientes:
-        hilo_cliente = threading.Thread(
+        hilo = threading.Thread(
             target=cliente.iniciar,
             name=f"Hilo-Cliente-{cliente.cliente_id}",
             daemon=True
         )
-        hilo_cliente.start()
-        hilos_suscriptores.append(hilo_cliente)
+        hilo.start()
+        hilos_suscriptores.append(hilo)
 
-    # Damos un segundo para que los 4 clientes completen el handshake MQTT
+    # Pausa de 1.5 segundos para que los 4 clientes completen la suscripcion
     time.sleep(1.5)
 
-    # 3. Levantamos el publicador en su propio hilo
-    hilo_publicador = threading.Thread(target=tarea_publicador, name="Hilo-Publicador", daemon=True)
-    hilo_publicador.start()
+    # Arrancamos el publicador
+    hilo_pub = threading.Thread(target=tarea_publicador, name="Hilo-Publicador", daemon=True)
+    hilo_pub.start()
 
-    print("\nSistema completo corriendo. Esperando datos y generando reportes...")
+    print("\nSistema completo en ejecucion. Presiona Ctrl+C para detener.\n")
 
-    # Bucle principal para escuchar la interrupcion del usuario (Ctrl+C)
     try:
         while not evento_detener.is_set():
             time.sleep(0.5)
     except KeyboardInterrupt:
-        print("\n[Simulador] Senal Ctrl+C recibida. Deteniendo servicios de forma ordenada...")
+        print("\n[Simulador] Senal Ctrl+C recibida. Deteniendo clientes...")
         evento_detener.set()
 
-        # Detenemos primero la conexion MQTT de los clientes
         for cliente in clientes:
             try:
                 cliente.detener()
             except Exception:
                 pass
 
-        # Esperamos que los hilos finalicen
         for hilo in hilos_suscriptores:
-            hilo.join(timeout=2.0)
+            hilo.join(timeout=1.5)
 
-        hilo_publicador.join(timeout=2.0)
-        hilo_broker.join(timeout=3.0)
-
-        print("[Simulador] Todos los componentes detenidos. Simulacion finalizada con exito.")
+        print("[Simulador] Sistema detenido con exito.")
 
 if __name__ == '__main__':
     main()

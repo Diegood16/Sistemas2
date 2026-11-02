@@ -1,10 +1,10 @@
 @echo off
 rem Proyecto 2 - Publicador y suscriptores MQTT con visualizacion y Telegram
-rem Menu interactivo para ejecutar broker, publicador, clientes o simulador completo
+rem Menu interactivo segun pauta del profesor Alberto Caro
 
 chcp 65001 > nul
 cd /d "%~dp0"
-title Sistema Distribuido MQTT - Proyecto 2
+title Sistema Distribuido MQTT (Mosquitto) - Proyecto 2
 
 :menu
 cls
@@ -13,35 +13,23 @@ echo       PROYECTO 2 - SISTEMAS INTELIGENTES (INFO1157)
 echo         Arquitectura de Publicacion y Suscripcion
 echo --------------------------------------------------------
 echo.
-echo   [1] Iniciar Broker MQTT Local (127.0.0.1:1883)
-echo   [2] Iniciar Publicador de Datos (Caro)
-echo   [3] Iniciar Clientes Suscriptores 1 al 4
-echo   [4] Iniciar Simulador Completo (Todo en uno)
-echo   [5] Salir
+echo   [1] Iniciar Publicador de Datos (Caro)
+echo   [2] Iniciar Clientes Suscriptores 1 al 4 (Ventanas independientes)
+echo   [3] Iniciar Simulador Completo (Publicador + 4 Clientes)
+echo   [4] Salir
 echo.
+echo   * Requiere Broker Mosquitto activo en 127.0.0.1:1883
 echo --------------------------------------------------------
-set /p opcion="Selecciona una opcion (1-5): "
+set /p opcion="Selecciona una opcion (1-4): "
 
-if "%opcion%"=="1" goto broker
-if "%opcion%"=="2" goto publicador
-if "%opcion%"=="3" goto suscriptores
-if "%opcion%"=="4" goto simulador
-if "%opcion%"=="5" goto salir
+if "%opcion%"=="1" goto publicador
+if "%opcion%"=="2" goto suscriptores
+if "%opcion%"=="3" goto simulador
+if "%opcion%"=="4" goto salir
 
 echo.
 echo Opcion no valida. Intenta de nuevo.
 timeout /t 2 > nul
-goto menu
-
-:broker
-cls
-echo --------------------------------------------------------
-echo Iniciando Broker MQTT Local en 127.0.0.1:1883...
-echo Presiona Ctrl+C para detener y volver al menu.
-echo --------------------------------------------------------
-echo.
-python src\broker_local.py
-pause
 goto menu
 
 :publicador
@@ -73,7 +61,7 @@ goto menu
 :simulador
 cls
 echo --------------------------------------------------------
-echo Iniciando Simulador Completo (Broker + Publicador + 4 Clientes)...
+echo Iniciando Simulador Completo (Publicador + 4 Clientes)...
 echo Presiona Ctrl+C para detener la simulacion ordenada.
 echo --------------------------------------------------------
 echo.

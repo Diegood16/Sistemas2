@@ -100,7 +100,7 @@ El monitoreo de la calidad del aire y variables meteorológicas es un pilar fund
 
 \subsection{Objetivos Principales}
 \begin{enumerate}
-    \item \textbf{Capa de Transporte:} Desplegar un broker MQTT local (Mosquitto / aMQTT en \texttt{127.0.0.1:1883}) para coordinar el intercambio desacoplado de mensajes.
+    \item \textbf{Capa de Transporte:} Desplegar el broker MQTT Mosquitto en \texttt{127.0.0.1:1883} para coordinar el intercambio desacoplado de mensajes.
     \item \textbf{Capa de Emisión:} Implementar un nodo publicador periódico que transmita mediciones de material particulado (\texttt{DATA/MP}) y variables meteorológicas (\texttt{DATA/MA}) a razón de 5 segundos.
     \item \textbf{Capa de Suscripción y Buffering:} Construir cuatro clientes suscriptores que capturen el flujo de datos y mantengan un buffer temporal de 10 muestras para cada magnitud física.
     \item \textbf{Capa de Renderizado y Visualización:} Replicar la Figura 3 del docente con cinco subplots apilados en \texttt{Matplotlib}, aplicando una arquitectura orientada a objetos inmune a colisiones de concurrencia.
@@ -195,7 +195,6 @@ El proyecto fue diseñado de manera modular para que cada archivo tenga una úni
 \texttt{publicador.py} & \texttt{Proyecto2/src/} & Emite lecturas simuladas cada 5 segundos (código base de cátedra). \\
 \texttt{subscriber.py} & \texttt{Proyecto2/src/} & Clase base: gestión de red MQTT, ventana de 10 muestras, gráficos y Telegram. \\
 \texttt{cliente1.py} al \texttt{4.py} & \texttt{Proyecto2/src/} & Scripts ejecutables independientes para lanzar cada cliente por separado. \\
-\texttt{broker\_local.py} & \texttt{Proyecto2/src/} & Broker MQTT de respaldo en Python (\texttt{aMQTT}) si no se instala Mosquitto. \\
 \texttt{simulador\_completo.py} & \texttt{Proyecto2/src/} & Ejecutable todo-en-uno que levanta hilos paralelos para toda la solución. \\
 \texttt{ejecutar.bat} & \texttt{Proyecto2/} & Menú interactivo en CMD para lanzar cualquiera de las opciones. \\
 \bottomrule
@@ -260,7 +259,7 @@ A continuación se presentan las preguntas más habituales que un evaluador de l
 \end{tcolorbox}
 
 \begin{tcolorbox}[estudiobox, title=P2: ¿Qué sucede si el broker Mosquitto se detiene en plena ejecución?]
-\textbf{Respuesta:} Los clientes suscriptores y el publicador perderán la conexión TCP y comenzarán a reintentar la conexión periódicamente gracias al parámetro \texttt{keepalive=60} de Paho-MQTT. Además, el proyecto cuenta con el script alternativo \texttt{broker\_local.py} (desarrollado con la librería \texttt{aMQTT}), lo que permite levantar un broker nativo en Python en el puerto 1883 sin depender del servicio de Windows.
+\textbf{Respuesta:} Los clientes suscriptores y el publicador perderán la conexión TCP y comenzarán a reintentar la reconexión periódicamente gracias al parámetro \texttt{keepalive=60} de Paho-MQTT. Una vez restablecido el servicio de Mosquitto en Windows (\texttt{net start mosquitto}), los clientes reanudan automáticamente la recepción de datos y la ventana móvil de 10 muestras sin necesidad de reiniciar manualmente los programas.
 \end{tcolorbox}
 
 \begin{tcolorbox}[estudiobox, title=P3: ¿Cómo sabe el cliente cuándo disparar el gráfico de 10 datos?]
